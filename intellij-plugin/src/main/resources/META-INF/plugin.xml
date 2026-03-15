@@ -1,0 +1,140 @@
+<idea-plugin>
+    <id>cz.creeperface.hytale.uimanager.intellij</id>
+    <name>Hytale UI Support</name>
+    <vendor>creeperface</vendor>
+    <description><![CDATA[
+        Language support for Hytale .ui files:
+        <ul>
+            <li>Syntax highlighting for nodes, types, enums, variables, colors, and more</li>
+            <li>Code completion for node names, property names, type constructors, enum values, and variable references</li>
+            <li>Navigation and references: go-to-definition for variables, file imports, and cross-file references</li>
+            <li>Inspections for unknown node types and invalid properties</li>
+            <li>Brace matching, code folding, and commenting support</li>
+        </ul>
+    ]]></description>
+
+    <depends>com.intellij.modules.platform</depends>
+
+    <extensions defaultExtensionNs="com.intellij">
+        <!-- Schema Service -->
+        <applicationService
+                serviceImplementation="cz.creeperface.hytale.uimanager.intellij.HytaleUiSchemaService"/>
+
+        <!-- File Type -->
+        <fileType
+                name="Hytale UI"
+                implementationClass="cz.creeperface.hytale.uimanager.intellij.HytaleUiFileType"
+                fieldName="INSTANCE"
+                language="HytaleUi"
+                extensions="ui"/>
+
+        <!-- Parser -->
+        <lang.parserDefinition
+                language="HytaleUi"
+                implementationClass="cz.creeperface.hytale.uimanager.intellij.parser.HytaleUiParserDefinition"/>
+
+        <!-- Syntax Highlighting -->
+        <lang.syntaxHighlighterFactory
+                language="HytaleUi"
+                implementationClass="cz.creeperface.hytale.uimanager.intellij.highlighting.HytaleUiSyntaxHighlighterFactory"/>
+
+        <colorSettingsPage
+                implementation="cz.creeperface.hytale.uimanager.intellij.highlighting.HytaleUiColorSettingsPage"/>
+
+        <annotator
+                language="HytaleUi"
+                implementationClass="cz.creeperface.hytale.uimanager.intellij.highlighting.HytaleUiAnnotator"/>
+
+        <!-- Completion -->
+        <completion.contributor
+                language="HytaleUi"
+                implementationClass="cz.creeperface.hytale.uimanager.intellij.completion.HytaleUiCompletionContributor"/>
+
+        <!-- Find Usages & Highlight Usages -->
+        <lang.findUsagesProvider
+                language="HytaleUi"
+                implementationClass="cz.creeperface.hytale.uimanager.intellij.reference.HytaleUiFindUsagesProvider"/>
+
+        <!-- References -->
+        <psi.referenceContributor
+                language="HytaleUi"
+                implementation="cz.creeperface.hytale.uimanager.intellij.reference.HytaleUiReferenceContributor"/>
+
+        <!-- Inspections -->
+        <localInspection
+                language="HytaleUi"
+                groupName="Hytale UI"
+                displayName="Unknown node type"
+                enabledByDefault="true"
+                level="WARNING"
+                implementationClass="cz.creeperface.hytale.uimanager.intellij.inspection.HytaleUiUnknownNodeInspection"/>
+
+        <localInspection
+                language="HytaleUi"
+                groupName="Hytale UI"
+                displayName="Unknown property"
+                enabledByDefault="true"
+                level="WARNING"
+                implementationClass="cz.creeperface.hytale.uimanager.intellij.inspection.HytaleUiUnknownPropertyInspection"/>
+
+        <localInspection
+                language="HytaleUi"
+                groupName="Hytale UI"
+                displayName="Unresolved variable reference"
+                enabledByDefault="true"
+                level="ERROR"
+                implementationClass="cz.creeperface.hytale.uimanager.intellij.inspection.HytaleUiUnresolvedVariableInspection"/>
+
+        <localInspection
+                language="HytaleUi"
+                groupName="Hytale UI"
+                displayName="Property type mismatch"
+                enabledByDefault="true"
+                level="WARNING"
+                implementationClass="cz.creeperface.hytale.uimanager.intellij.inspection.HytaleUiTypeMismatchInspection"/>
+
+        <localInspection
+                language="HytaleUi"
+                groupName="Hytale UI"
+                displayName="Unresolved file reference"
+                enabledByDefault="true"
+                level="WARNING"
+                implementationClass="cz.creeperface.hytale.uimanager.intellij.inspection.HytaleUiUnresolvedFileInspection"/>
+
+        <!-- Formatting -->
+        <lang.braceMatcher
+                language="HytaleUi"
+                implementationClass="cz.creeperface.hytale.uimanager.intellij.formatting.HytaleUiBraceMatcher"/>
+
+        <lang.commenter
+                language="HytaleUi"
+                implementationClass="cz.creeperface.hytale.uimanager.intellij.formatting.HytaleUiCommenter"/>
+
+        <lang.foldingBuilder
+                language="HytaleUi"
+                implementationClass="cz.creeperface.hytale.uimanager.intellij.formatting.HytaleUiFoldingBuilder"/>
+
+        <lang.formatter
+                language="HytaleUi"
+                implementationClass="cz.creeperface.hytale.uimanager.intellij.formatting.HytaleUiFormattingModelBuilder"/>
+
+        <codeStyleSettingsProvider
+                implementation="cz.creeperface.hytale.uimanager.intellij.formatting.HytaleUiCodeStyleSettingsProvider"/>
+
+        <langCodeStyleSettingsProvider
+                implementation="cz.creeperface.hytale.uimanager.intellij.formatting.HytaleUiLanguageCodeStyleSettingsProvider"/>
+
+        <!-- Color gutter icons -->
+        <codeInsight.lineMarkerProvider
+                language="HytaleUi"
+                implementationClass="cz.creeperface.hytale.uimanager.intellij.highlighting.HytaleUiColorLineMarkerProvider"/>
+
+        <!-- Documentation (Ctrl+hover / Ctrl+Q) -->
+        <lang.documentationProvider
+                language="HytaleUi"
+                implementationClass="cz.creeperface.hytale.uimanager.intellij.documentation.HytaleUiDocumentationProvider"/>
+
+        <!-- Default color scheme for Hytale UI -->
+        <additionalTextAttributes scheme="Darcula" file="colorSchemes/HytaleUiDefault.xml"/>
+    </extensions>
+</idea-plugin>

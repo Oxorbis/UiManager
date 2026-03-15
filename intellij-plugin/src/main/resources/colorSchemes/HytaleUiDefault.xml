@@ -1,0 +1,19 @@
+<scheme name="HytaleUiDefault" version="1" parent_scheme="Darcula">
+    <attributes>
+        <option name="HYTALE_UI_VARIABLE">
+            <value>
+                <option name="FOREGROUND" value="ffc66d"/>
+            </value>
+        </option>
+        <option name="HYTALE_UI_FILE_IMPORT">
+            <value>
+                <option name="FOREGROUND" value="4ec9b0"/>
+            </value>
+        </option>
+        <option name="HYTALE_UI_TYPE_NAME">
+            <value>
+                <option name="FOREGROUND" value="a9b7c6"/>
+            </value>
+        </option>
+    </attributes>
+</scheme>

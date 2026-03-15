@@ -1,0 +1,1355 @@
+{
+  "nodes": {
+    "AssetImage": {
+      "name": "AssetImage",
+      "properties": {
+        "Anchor": [
+          "Anchor"
+        ]
+      },
+      "children": []
+    },
+    "Button": {
+      "name": "Button",
+      "properties": {
+        "Style": [
+          "ButtonStyle"
+        ],
+        "Anchor": [
+          "Anchor"
+        ],
+        "Padding": [
+          "Padding"
+        ],
+        "Visible": [
+          "boolean"
+        ],
+        "Background": [
+          "PatchStyle"
+        ],
+        "LayoutMode": [
+          "enum:LayoutMode"
+        ]
+      },
+      "children": [
+        "Group",
+        "ItemIcon",
+        "Label",
+        "Sprite"
+      ]
+    },
+    "BackButton": {
+      "name": "BackButton"
+    },
+    "CheckBox": {
+      "name": "CheckBox",
+      "properties": {
+        "Anchor": [
+          "Anchor"
+        ],
+        "Background": [
+          "PatchStyle"
+        ],
+        "Padding": [
+          "Padding"
+        ],
+        "Style": [
+          "CheckBoxStyle"
+        ],
+        "Value": [
+          "boolean"
+        ]
+      },
+      "children": []
+    },
+    "ColorPicker": {
+      "name": "ColorPicker",
+      "properties": {
+        "Anchor": [
+          "Anchor"
+        ],
+        "Format": [
+          "enum:Format"
+        ],
+        "Style": [
+          "ColorPickerStyle"
+        ],
+        "Value": [
+          "string"
+        ]
+      },
+      "children": []
+    },
+    "ColorPickerDropdownBox": {
+      "name": "ColorPickerDropdownBox",
+      "properties": {
+        "Anchor": [
+          "Anchor"
+        ],
+        "Format": [
+          "enum:Format"
+        ],
+        "Style": [
+          "ColorPickerDropdownBoxStyle"
+        ],
+        "DisplayTextField": [
+          "boolean"
+        ],
+        "Value": [
+          "string"
+        ]
+      },
+      "children": []
+    },
+    "CompactTextField": {
+      "name": "CompactTextField",
+      "properties": {
+        "Anchor": [
+          "Anchor"
+        ],
+        "CollapsedWidth": [
+          "integer"
+        ],
+        "ExpandedWidth": [
+          "integer"
+        ],
+        "PlaceholderText": [
+          "string"
+        ],
+        "Style": [
+          "LabelStyle"
+        ],
+        "PlaceholderStyle": [
+          "LabelStyle"
+        ],
+        "Padding": [
+          "Padding"
+        ],
+        "Decoration": [
+          "Decoration"
+        ],
+        "Value": [
+          "string"
+        ]
+      },
+      "children": []
+    },
+    "DropdownBox": {
+      "name": "DropdownBox",
+      "properties": {
+        "Anchor": [
+          "Anchor"
+        ],
+        "Style": [
+          "DropdownBoxStyle"
+        ],
+        "NoItemsText": [
+          "string"
+        ],
+        "Value": [
+          "string"
+        ]
+      },
+      "children": []
+    },
+    "FloatSlider": {
+      "name": "FloatSlider",
+      "properties": {
+        "Anchor": [
+          "Anchor"
+        ],
+        "Style": [
+          "SliderStyle"
+        ],
+        "Min": [
+          "float"
+        ],
+        "Max": [
+          "float"
+        ],
+        "Step": [
+          "float"
+        ],
+        "Value": [
+          "float"
+        ]
+      },
+      "children": []
+    },
+    "Group": {
+      "name": "Group",
+      "properties": {
+        "Background": [
+          "PatchStyle",
+          "color",
+          "string"
+        ],
+        "LayoutMode": [
+          "enum:LayoutMode"
+        ],
+        "Anchor": [
+          "Anchor"
+        ],
+        "FlexWeight": [
+          "integer"
+        ],
+        "Padding": [
+          "Padding",
+          "integer"
+        ],
+        "Visible": [
+          "boolean"
+        ],
+        "ScrollbarStyle": [
+          "ScrollbarStyle"
+        ],
+        "HitTestVisible": [
+          "boolean"
+        ],
+        "TooltipText": [
+          "string"
+        ],
+        "TextTooltipShowDelay": [
+          "float"
+        ],
+        "TextTooltipStyle": [
+          "TextTooltipStyle"
+        ]
+      },
+      "children": [
+        "AssetImage",
+        "BackButton",
+        "Button",
+        "CheckBox",
+        "ColorPicker",
+        "ColorPickerDropdownBox",
+        "CompactTextField",
+        "DropdownBox",
+        "FloatSlider",
+        "Group",
+        "ItemGrid",
+        "ItemSlot",
+        "ItemSlotButton",
+        "Label",
+        "MultilineTextField",
+        "NumberField",
+        "ProgressBar",
+        "Slider",
+        "TextButton",
+        "TextField",
+        "TimerLabel"
+      ]
+    },
+    "ItemGrid": {
+      "name": "ItemGrid",
+      "properties": {
+        "Anchor": [
+          "Anchor"
+        ],
+        "SlotsPerRow": [
+          "integer"
+        ],
+        "Style": [
+          "ItemGrid_Style"
+        ]
+      },
+      "children": []
+    },
+    "ItemIcon": {
+      "name": "ItemIcon",
+      "properties": {
+        "Anchor": [
+          "Anchor"
+        ]
+      },
+      "children": []
+    },
+    "ItemSlot": {
+      "name": "ItemSlot",
+      "properties": {
+        "Anchor": [
+          "Anchor"
+        ],
+        "ShowQualityBackground": [
+          "boolean"
+        ],
+        "ShowQuantity": [
+          "boolean"
+        ]
+      },
+      "children": []
+    },
+    "ItemSlotButton": {
+      "name": "ItemSlotButton",
+      "properties": {
+        "Anchor": [
+          "Anchor"
+        ],
+        "LayoutMode": [
+          "enum:LayoutMode"
+        ],
+        "Padding": [
+          "integer"
+        ],
+        "Style": [
+          "ButtonStyle"
+        ]
+      },
+      "children": [
+        "Group"
+      ]
+    },
+    "Label": {
+      "name": "Label",
+      "properties": {
+        "Style": [
+          "LabelStyle"
+        ],
+        "Text": [
+          "string"
+        ],
+        "Anchor": [
+          "Anchor"
+        ],
+        "Padding": [
+          "Padding",
+          "integer"
+        ],
+        "Visible": [
+          "boolean"
+        ],
+        "TextSpans": [
+          "string"
+        ],
+        "FlexWeight": [
+          "integer"
+        ],
+        "MaskTexturePath": [
+          "string"
+        ],
+        "Background": [
+          "PatchStyle"
+        ]
+      },
+      "children": []
+    },
+    "MultilineTextField": {
+      "name": "MultilineTextField",
+      "properties": {
+        "Style": [
+          "InputFieldStyle"
+        ],
+        "PlaceholderStyle": [
+          "InputFieldStyle"
+        ],
+        "Background": [
+          "PatchStyle"
+        ],
+        "AutoGrow": [
+          "boolean"
+        ],
+        "Padding": [
+          "Padding"
+        ],
+        "ScrollbarStyle": [
+          "ScrollbarStyle"
+        ],
+        "Anchor": [
+          "Anchor"
+        ],
+        "MaxLength": [
+          "integer"
+        ],
+        "PlaceholderText": [
+          "string"
+        ],
+        "Value": [
+          "string"
+        ]
+      },
+      "children": []
+    },
+    "NumberField": {
+      "name": "NumberField",
+      "properties": {
+        "Style": [
+          "InputFieldStyle"
+        ],
+        "PlaceholderStyle": [
+          "InputFieldStyle"
+        ],
+        "Background": [
+          "PatchStyle"
+        ],
+        "Anchor": [
+          "Anchor"
+        ],
+        "Padding": [
+          "Padding"
+        ],
+        "Format": [
+          "NumberField_Format"
+        ],
+        "Value": [
+          "integer"
+        ]
+      },
+      "children": []
+    },
+    "ProgressBar": {
+      "name": "ProgressBar",
+      "properties": {
+        "BarTexturePath": [
+          "string"
+        ],
+        "EffectTexturePath": [
+          "string"
+        ],
+        "EffectWidth": [
+          "integer"
+        ],
+        "EffectHeight": [
+          "integer"
+        ],
+        "EffectOffset": [
+          "integer"
+        ]
+      },
+      "children": []
+    },
+    "Slider": {
+      "name": "Slider",
+      "properties": {
+        "Anchor": [
+          "Anchor"
+        ],
+        "Style": [
+          "SliderStyle"
+        ],
+        "Min": [
+          "integer"
+        ],
+        "Max": [
+          "integer"
+        ],
+        "Step": [
+          "float"
+        ],
+        "Value": [
+          "integer"
+        ]
+      },
+      "children": []
+    },
+    "Sprite": {
+      "name": "Sprite",
+      "properties": {
+        "Anchor": [
+          "Anchor"
+        ],
+        "TexturePath": [
+          "string"
+        ],
+        "Frame": [
+          "Frame"
+        ],
+        "FramesPerSecond": [
+          "integer"
+        ],
+        "Padding": [
+          "Padding"
+        ]
+      },
+      "children": []
+    },
+    "TextButton": {
+      "name": "TextButton",
+      "properties": {
+        "Style": [
+          "ButtonStyle",
+          "TextButtonStyle"
+        ],
+        "Anchor": [
+          "Anchor"
+        ],
+        "Padding": [
+          "Padding"
+        ],
+        "Text": [
+          "string"
+        ],
+        "FlexWeight": [
+          "integer"
+        ],
+        "Visible": [
+          "boolean"
+        ],
+        "Disabled": [
+          "boolean"
+        ],
+        "TextTooltipStyle": [
+          "TextTooltipStyle"
+        ]
+      },
+      "children": []
+    },
+    "TextField": {
+      "name": "TextField",
+      "properties": {
+        "Style": [
+          "InputFieldStyle"
+        ],
+        "PlaceholderStyle": [
+          "InputFieldStyle"
+        ],
+        "Background": [
+          "PatchStyle"
+        ],
+        "Anchor": [
+          "Anchor"
+        ],
+        "Padding": [
+          "Padding"
+        ],
+        "PlaceholderText": [
+          "string"
+        ],
+        "FlexWeight": [
+          "integer"
+        ],
+        "MaxLength": [
+          "integer"
+        ],
+        "Value": [
+          "string"
+        ]
+      },
+      "children": []
+    },
+    "TimerLabel": {
+      "name": "TimerLabel",
+      "properties": {
+        "Style": [
+          "LabelStyle"
+        ],
+        "Seconds": [
+          "value"
+        ]
+      },
+      "children": []
+    }
+  },
+  "types": {
+    "Anchor": {
+      "name": "Anchor",
+      "properties": {
+        "Height": [
+          "integer"
+        ],
+        "Width": [
+          "integer"
+        ],
+        "Top": [
+          "integer"
+        ],
+        "Right": [
+          "integer"
+        ],
+        "Left": [
+          "integer"
+        ],
+        "Bottom": [
+          "integer"
+        ],
+        "Horizontal": [
+          "integer"
+        ],
+        "Vertical": [
+          "integer"
+        ],
+        "Full": [
+          "integer"
+        ]
+      }
+    },
+    "ButtonStateStyle": {
+      "name": "ButtonStateStyle",
+      "properties": {
+        "Background": [
+          "PatchStyle",
+          "color",
+          "string"
+        ],
+        "LabelStyle": [
+          "LabelStyle"
+        ]
+      }
+    },
+    "ButtonStyle": {
+      "name": "ButtonStyle",
+      "properties": {
+        "Sounds": [
+          "Sounds"
+        ],
+        "Default": [
+          "ButtonStateStyle"
+        ],
+        "Hovered": [
+          "ButtonStateStyle"
+        ],
+        "Pressed": [
+          "ButtonStateStyle"
+        ],
+        "Disabled": [
+          "ButtonStateStyle"
+        ]
+      }
+    },
+    "CheckBoxStateStyle": {
+      "name": "CheckBoxStateStyle",
+      "properties": {
+        "DefaultBackground": [
+          "PatchStyle"
+        ],
+        "HoveredBackground": [
+          "PatchStyle"
+        ],
+        "PressedBackground": [
+          "PatchStyle"
+        ],
+        "DisabledBackground": [
+          "PatchStyle"
+        ],
+        "ChangedSound": [
+          "SoundEffect"
+        ]
+      }
+    },
+    "CheckBoxStyle": {
+      "name": "CheckBoxStyle",
+      "properties": {
+        "Unchecked": [
+          "CheckBoxStateStyle"
+        ],
+        "Checked": [
+          "CheckBoxStateStyle"
+        ]
+      }
+    },
+    "ClearButtonStyle": {
+      "name": "ClearButtonStyle",
+      "properties": {
+        "Texture": [
+          "PatchStyle"
+        ],
+        "HoveredTexture": [
+          "PatchStyle"
+        ],
+        "PressedTexture": [
+          "PatchStyle"
+        ],
+        "Width": [
+          "integer"
+        ],
+        "Height": [
+          "integer"
+        ],
+        "Side": [
+          "enum:Side"
+        ],
+        "Offset": [
+          "integer"
+        ]
+      }
+    },
+    "ColorPickerDropdownBoxStyle": {
+      "name": "ColorPickerDropdownBoxStyle",
+      "properties": {
+        "ColorPickerStyle": [
+          "ColorPickerStyle"
+        ],
+        "Background": [
+          "PatchStyle"
+        ],
+        "ArrowBackground": [
+          "PatchStyle"
+        ],
+        "Overlay": [
+          "ColorPickerDropdownBoxStyle_Overlay"
+        ],
+        "PanelBackground": [
+          "PatchStyle"
+        ],
+        "PanelPadding": [
+          "Padding"
+        ],
+        "PanelOffset": [
+          "integer"
+        ],
+        "ArrowAnchor": [
+          "Anchor"
+        ]
+      }
+    },
+    "ColorPickerDropdownBoxStyle_Overlay": {
+      "name": "object",
+      "properties": {
+        "Default": [
+          "string"
+        ]
+      }
+    },
+    "ColorPickerStyle": {
+      "name": "ColorPickerStyle",
+      "properties": {
+        "OpacitySelectorBackground": [
+          "string"
+        ],
+        "ButtonBackground": [
+          "string"
+        ],
+        "ButtonFill": [
+          "string"
+        ],
+        "TextFieldDecoration": [
+          "Decoration"
+        ],
+        "TextFieldPadding": [
+          "Padding"
+        ],
+        "TextFieldHeight": [
+          "integer"
+        ]
+      }
+    },
+    "Decoration": {
+      "name": "Decoration",
+      "properties": {
+        "Default": [
+          "Decoration_Default"
+        ]
+      }
+    },
+    "Decoration_Default": {
+      "name": "object",
+      "properties": {
+        "Icon": [
+          "PatchStyle"
+        ],
+        "ClearButtonStyle": [
+          "ClearButtonStyle"
+        ],
+        "Background": [
+          "color"
+        ]
+      }
+    },
+    "DropdownBoxSounds": {
+      "name": "DropdownBoxSounds",
+      "properties": {
+        "Activate": [
+          "SoundEffect"
+        ],
+        "MouseHover": [
+          "SoundEffect"
+        ],
+        "Close": [
+          "SoundEffect"
+        ]
+      }
+    },
+    "DropdownBoxStyle": {
+      "name": "DropdownBoxStyle",
+      "properties": {
+        "DefaultBackground": [
+          "PatchStyle"
+        ],
+        "HoveredBackground": [
+          "PatchStyle"
+        ],
+        "PressedBackground": [
+          "PatchStyle"
+        ],
+        "DefaultArrowTexturePath": [
+          "string"
+        ],
+        "HoveredArrowTexturePath": [
+          "string"
+        ],
+        "PressedArrowTexturePath": [
+          "string"
+        ],
+        "ArrowWidth": [
+          "integer"
+        ],
+        "ArrowHeight": [
+          "integer"
+        ],
+        "LabelStyle": [
+          "LabelStyle"
+        ],
+        "EntryLabelStyle": [
+          "LabelStyle"
+        ],
+        "NoItemsLabelStyle": [
+          "LabelStyle"
+        ],
+        "SelectedEntryLabelStyle": [
+          "LabelStyle"
+        ],
+        "HorizontalPadding": [
+          "integer"
+        ],
+        "PanelScrollbarStyle": [
+          "ScrollbarStyle"
+        ],
+        "PanelBackground": [
+          "PatchStyle"
+        ],
+        "PanelPadding": [
+          "integer"
+        ],
+        "PanelAlign": [
+          "enum:PanelAlign"
+        ],
+        "PanelOffset": [
+          "integer"
+        ],
+        "EntryHeight": [
+          "integer"
+        ],
+        "EntriesInViewport": [
+          "integer"
+        ],
+        "HorizontalEntryPadding": [
+          "integer"
+        ],
+        "HoveredEntryBackground": [
+          "PatchStyle"
+        ],
+        "PressedEntryBackground": [
+          "PatchStyle"
+        ],
+        "Sounds": [
+          "DropdownBoxSounds"
+        ],
+        "EntrySounds": [
+          "Sounds"
+        ],
+        "FocusOutlineSize": [
+          "integer"
+        ],
+        "FocusOutlineColor": [
+          "color"
+        ]
+      }
+    },
+    "FileDropdownBoxStyle": {
+      "name": "FileDropdownBoxStyle",
+      "properties": {
+        "DefaultBackground": [
+          "PatchStyle"
+        ],
+        "HoveredBackground": [
+          "PatchStyle"
+        ],
+        "PressedBackground": [
+          "PatchStyle"
+        ],
+        "DefaultArrowTexturePath": [
+          "string"
+        ],
+        "HoveredArrowTexturePath": [
+          "string"
+        ],
+        "PressedArrowTexturePath": [
+          "string"
+        ],
+        "ArrowWidth": [
+          "integer"
+        ],
+        "ArrowHeight": [
+          "integer"
+        ],
+        "LabelStyle": [
+          "LabelStyle"
+        ],
+        "HorizontalPadding": [
+          "integer"
+        ],
+        "PanelAlign": [
+          "enum:PanelAlign"
+        ],
+        "PanelOffset": [
+          "integer"
+        ],
+        "Sounds": [
+          "DropdownBoxSounds"
+        ]
+      }
+    },
+    "Frame": {
+      "name": "Frame",
+      "properties": {
+        "Width": [
+          "integer"
+        ],
+        "Height": [
+          "integer"
+        ],
+        "PerRow": [
+          "integer"
+        ],
+        "Count": [
+          "integer"
+        ]
+      }
+    },
+    "InputFieldStyle": {
+      "name": "InputFieldStyle",
+      "properties": {
+        "TextColor": [
+          "color"
+        ]
+      }
+    },
+    "ItemGrid_Style": {
+      "name": "object",
+      "properties": {
+        "SlotSize": [
+          "integer"
+        ],
+        "SlotIconSize": [
+          "integer"
+        ],
+        "SlotSpacing": [
+          "integer"
+        ],
+        "SlotBackground": [
+          "string"
+        ]
+      }
+    },
+    "LabelStyle": {
+      "name": "LabelStyle",
+      "properties": {
+        "FontSize": [
+          "integer"
+        ],
+        "Alignment": [
+          "enum:Alignment"
+        ],
+        "TextColor": [
+          "color"
+        ],
+        "RenderBold": [
+          "boolean"
+        ],
+        "RenderUppercase": [
+          "boolean"
+        ],
+        "HorizontalAlignment": [
+          "enum:HorizontalAlignment"
+        ],
+        "VerticalAlignment": [
+          "enum:VerticalAlignment"
+        ],
+        "FontName": [
+          "string"
+        ],
+        "LetterSpacing": [
+          "float"
+        ],
+        "OutlineColor": [
+          "color"
+        ],
+        "Wrap": [
+          "boolean"
+        ],
+        "RenderItalics": [
+          "boolean"
+        ]
+      }
+    },
+    "NumberField_Format": {
+      "name": "object",
+      "properties": {
+        "MaxDecimalPlaces": [
+          "integer"
+        ],
+        "Step": [
+          "float"
+        ],
+        "MinValue": [
+          "float"
+        ],
+        "MaxValue": [
+          "integer"
+        ]
+      }
+    },
+    "Padding": {
+      "name": "Padding",
+      "properties": {
+        "Horizontal": [
+          "integer"
+        ],
+        "Full": [
+          "integer"
+        ],
+        "Left": [
+          "integer"
+        ],
+        "Right": [
+          "integer"
+        ],
+        "Bottom": [
+          "integer"
+        ],
+        "Top": [
+          "integer"
+        ],
+        "Vertical": [
+          "integer"
+        ]
+      }
+    },
+    "PatchStyle": {
+      "name": "PatchStyle",
+      "properties": {
+        "TexturePath": [
+          "string"
+        ],
+        "Border": [
+          "integer"
+        ],
+        "VerticalBorder": [
+          "integer"
+        ],
+        "HorizontalBorder": [
+          "integer"
+        ],
+        "Color": [
+          "color"
+        ],
+        "Texture": [
+          "string"
+        ],
+        "Width": [
+          "integer"
+        ],
+        "Height": [
+          "integer"
+        ],
+        "Offset": [
+          "integer"
+        ],
+        "Default": [
+          "string"
+        ]
+      }
+    },
+    "PopupMenuLayerStyle": {
+      "name": "PopupMenuLayerStyle",
+      "properties": {
+        "Background": [
+          "PatchStyle"
+        ],
+        "Padding": [
+          "integer"
+        ],
+        "BaseHeight": [
+          "integer"
+        ],
+        "MaxWidth": [
+          "integer"
+        ],
+        "TitleStyle": [
+          "LabelStyle"
+        ],
+        "TitleBackground": [
+          "PatchStyle"
+        ],
+        "RowHeight": [
+          "integer"
+        ],
+        "ItemLabelStyle": [
+          "LabelStyle"
+        ],
+        "ItemPadding": [
+          "PopupMenuLayerStyle_ItemPadding"
+        ],
+        "ItemBackground": [
+          "PatchStyle"
+        ],
+        "ItemIconSize": [
+          "integer"
+        ],
+        "HoveredItemBackground": [
+          "PatchStyle"
+        ],
+        "PressedItemBackground": [
+          "PatchStyle"
+        ],
+        "ItemSounds": [
+          "PopupMenuLayerStyle_ItemSounds"
+        ]
+      }
+    },
+    "PopupMenuLayerStyle_ItemPadding": {
+      "name": "object",
+      "properties": {
+        "Vertical": [
+          "integer"
+        ],
+        "Horizontal": [
+          "integer"
+        ]
+      }
+    },
+    "PopupMenuLayerStyle_ItemSounds": {
+      "name": "ButtonsLight",
+      "properties": {
+        "Activate": [
+          "SoundEffect"
+        ],
+        "MouseHover": [
+          "SoundEffect"
+        ]
+      }
+    },
+    "ScrollbarStyle": {
+      "name": "ScrollbarStyle",
+      "properties": {
+        "Spacing": [
+          "integer"
+        ],
+        "Size": [
+          "integer"
+        ],
+        "Background": [
+          "PatchStyle"
+        ],
+        "Handle": [
+          "PatchStyle"
+        ],
+        "HoveredHandle": [
+          "PatchStyle"
+        ],
+        "DraggedHandle": [
+          "PatchStyle"
+        ],
+        "OnlyVisibleWhenHovered": [
+          "boolean"
+        ]
+      }
+    },
+    "SliderStyle": {
+      "name": "SliderStyle",
+      "properties": {
+        "Background": [
+          "PatchStyle"
+        ],
+        "Handle": [
+          "string"
+        ],
+        "HandleWidth": [
+          "integer"
+        ],
+        "HandleHeight": [
+          "integer"
+        ],
+        "Sounds": [
+          "Sounds"
+        ]
+      }
+    },
+    "SoundEffect": {
+      "name": "SoundEffect",
+      "properties": {
+        "SoundPath": [
+          "reference",
+          "string"
+        ],
+        "MinPitch": [
+          "float"
+        ],
+        "MaxPitch": [
+          "float"
+        ],
+        "Volume": [
+          "integer"
+        ]
+      }
+    },
+    "Sounds": {
+      "name": "Sounds",
+      "properties": {
+        "Activate": [
+          "SoundEffect"
+        ],
+        "MouseHover": [
+          "SoundEffect"
+        ],
+        "Context": [
+          "SoundEffect"
+        ]
+      }
+    },
+    "TabNavigationStyle": {
+      "name": "TabNavigationStyle",
+      "properties": {
+        "TabStyle": [
+          "TabNavigationStyle_TabStyle"
+        ],
+        "SelectedTabStyle": [
+          "TabNavigationStyle_SelectedTabStyle"
+        ],
+        "SeparatorAnchor": [
+          "TabNavigationStyle_SeparatorAnchor"
+        ],
+        "SeparatorBackground": [
+          "string"
+        ]
+      }
+    },
+    "TabNavigationStyle_SelectedTabStyle": {
+      "name": "object",
+      "properties": {
+        "Default": [
+          "TabStateStyle"
+        ]
+      }
+    },
+    "TabNavigationStyle_SeparatorAnchor": {
+      "name": "object",
+      "properties": {
+        "Width": [
+          "integer"
+        ],
+        "Height": [
+          "integer"
+        ]
+      }
+    },
+    "TabNavigationStyle_TabStyle": {
+      "name": "object",
+      "properties": {
+        "Default": [
+          "TabStateStyle"
+        ],
+        "Hovered": [
+          "TabStateStyle"
+        ],
+        "Pressed": [
+          "TabStateStyle"
+        ]
+      }
+    },
+    "TabStateStyle": {
+      "name": "TabStateStyle",
+      "properties": {
+        "Background": [
+          "string"
+        ],
+        "Overlay": [
+          "string"
+        ],
+        "IconAnchor": [
+          "TabStateStyle_IconAnchor"
+        ],
+        "Anchor": [
+          "Anchor"
+        ],
+        "IconOpacity": [
+          "float"
+        ]
+      }
+    },
+    "TabStateStyle_IconAnchor": {
+      "name": "object",
+      "properties": {
+        "Width": [
+          "integer"
+        ],
+        "Height": [
+          "integer"
+        ]
+      }
+    },
+    "TextButtonStyle": {
+      "name": "TextButtonStyle",
+      "properties": {
+        "Default": [
+          "ButtonStateStyle"
+        ],
+        "Hovered": [
+          "ButtonStateStyle"
+        ],
+        "Pressed": [
+          "ButtonStateStyle"
+        ],
+        "Disabled": [
+          "ButtonStateStyle"
+        ],
+        "Sounds": [
+          "Sounds"
+        ]
+      }
+    },
+    "TextTooltipStyle": {
+      "name": "TextTooltipStyle",
+      "properties": {
+        "Background": [
+          "PatchStyle"
+        ],
+        "MaxWidth": [
+          "integer"
+        ],
+        "LabelStyle": [
+          "LabelStyle"
+        ],
+        "Padding": [
+          "integer"
+        ]
+      }
+    }
+  },
+  "enums": {
+    "Alignment": [
+      "Center"
+    ],
+    "Format": [
+      "Rgb"
+    ],
+    "HorizontalAlignment": [
+      "Center",
+      "End",
+      "Start"
+    ],
+    "LayoutMode": [
+      "Bottom",
+      "Center",
+      "CenterMiddle",
+      "Full",
+      "Left",
+      "LeftCenterWrap",
+      "Middle",
+      "MiddleCenter",
+      "Right",
+      "Top",
+      "TopScrolling"
+    ],
+    "PanelAlign": [
+      "Bottom",
+      "Right"
+    ],
+    "Side": [
+      "Right"
+    ],
+    "VerticalAlignment": [
+      "Center",
+      "End"
+    ]
+  }
+}

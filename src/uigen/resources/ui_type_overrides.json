@@ -1,0 +1,19 @@
+{
+  "nodes": {
+    "TextButton": {
+      "Style": "TextButtonStyle"
+    },
+    "Label": {
+      "Background": "PatchStyle"
+    },
+    "Group": {
+      "Background": "PatchStyle",
+      "Padding": "Padding"
+    }
+  },
+  "types": {
+    "ButtonStateStyle": {
+      "Background": "PatchStyle"
+    }
+  }
+}

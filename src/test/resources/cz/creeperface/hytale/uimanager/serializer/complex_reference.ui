@@ -1,0 +1,74 @@
+Group #NodeGroup1 {
+  LayoutMode: Middle;
+
+  Panel #NodeGroup1Panel1 {
+    Anchor: (Height: 600, Width: 500);
+    Background: (Border: 10, TexturePath: "textures/ui/panel_background.png");
+    LayoutMode: Center;
+
+    Group #NodeGroup1Panel1Group1 {
+      Anchor: (Height: 50, Top: 20, Width: 400);
+      LayoutMode: Center;
+
+      Label #NodeGroup1Panel1Group1Label1 {
+        Anchor: (Full: 0);
+        Style: (
+          FontSize: 24.0,
+          RenderBold: true,
+          TextColor: #FFFFFF,
+        );
+        Text: "Complex UI Header";
+      }
+    }
+
+    Group #NodeGroup1Panel1Group2 {
+      Anchor: (Bottom: 20, Top: 80, Width: 460);
+      LayoutMode: Middle;
+
+      Group #NodeGroup1Panel1Group2Group1 {
+        Anchor: (Height: 100, Width: 440);
+        Background: (Border: 5, TexturePath: "textures/ui/item_slot.png");
+
+        Sprite #NodeGroup1Panel1Group2Group1Sprite1 {
+          Anchor: (Left: 10, Vertical: 0, Width: 80);
+          TexturePath: "textures/items/item_0.png";
+        }
+
+        Label #NodeGroup1Panel1Group2Group1Label1 {
+          Anchor: (Left: 100, Right: 10, Vertical: 0);
+          Text: "Item Number 0 Description";
+        }
+      }
+
+      Group #NodeGroup1Panel1Group2Group2 {
+        Anchor: (Height: 100, Width: 440);
+        Background: (Border: 5, TexturePath: "textures/ui/item_slot.png");
+
+        Sprite #NodeGroup1Panel1Group2Group2Sprite1 {
+          Anchor: (Left: 10, Vertical: 0, Width: 80);
+          TexturePath: "textures/items/item_1.png";
+        }
+
+        Label #NodeGroup1Panel1Group2Group2Label1 {
+          Anchor: (Left: 100, Right: 10, Vertical: 0);
+          Text: "Item Number 1 Description";
+        }
+      }
+
+      Group #NodeGroup1Panel1Group2Group3 {
+        Anchor: (Height: 100, Width: 440);
+        Background: (Border: 5, TexturePath: "textures/ui/item_slot.png");
+
+        Sprite #NodeGroup1Panel1Group2Group3Sprite1 {
+          Anchor: (Left: 10, Vertical: 0, Width: 80);
+          TexturePath: "textures/items/item_2.png";
+        }
+
+        Label #NodeGroup1Panel1Group2Group3Label1 {
+          Anchor: (Left: 100, Right: 10, Vertical: 0);
+          Text: "Item Number 2 Description";
+        }
+      }
+    }
+  }
+}
