@@ -2,6 +2,7 @@ package cz.creeperface.hytale.uimanager.templates
 
 import cz.creeperface.hytale.uimanager.ChildNodeBuilder
 import cz.creeperface.hytale.uimanager.ExcludeProperty
+import cz.creeperface.hytale.uimanager.IdGenerator
 import cz.creeperface.hytale.uimanager.UiDsl
 import cz.creeperface.hytale.uimanager.UiNode
 import cz.creeperface.hytale.uimanager.UiPage
@@ -20,6 +21,8 @@ import cz.creeperface.hytale.uimanager.type.patchStyle
 
 class UiDecoratedContainer(
     @ExcludeProperty
+    val containerBuilder: (() -> Unit)? = null,
+    @ExcludeProperty
     var titleBuilder: (UiGroup.() -> Unit)? = null,
     @ExcludeProperty
     var contentBuilder: (UiGroup.() -> Unit)? = null,
@@ -36,7 +39,7 @@ class UiDecoratedContainer(
     }
 
     override fun clone(): UiNode {
-        val clone = UiDecoratedContainer(titleBuilder, contentBuilder, closeButtonVisible)
+        val clone = UiDecoratedContainer(containerBuilder, titleBuilder, contentBuilder, closeButtonVisible)
         clone.id = this.id
         clone.omitName = this.omitName
         clone.anchor = this.anchor
@@ -68,9 +71,12 @@ fun ChildNodeBuilder.decoratedContainer(
 ): UiGroup {
     val container = UiDecoratedContainer()
 
-    container.init()
+    val prefix = if (this is UiNode) (this.id ?: "Node") else "Node"
+    container.id = IdGenerator.getNext(prefix + "Group")
 
-    return group {
+    with(container) {
+        init()
+
         group {
             anchor = anchor { height = titleHeight; top = 0 }
             background = patchStyle { texturePath = CommonTemplate.UI_ROOT + "Common/ContainerHeader.png"; horizontalBorder = 50; verticalBorder = 0 }
@@ -109,4 +115,7 @@ fun ChildNodeBuilder.decoratedContainer(
             visible = container.closeButtonVisible
         }
     }
+
+    addNode(container)
+    return container
 }

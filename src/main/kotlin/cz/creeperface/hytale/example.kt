@@ -6,7 +6,6 @@ import com.hypixel.hytale.logger.HytaleLogger
 import cz.creeperface.hytale.uimanager.ChildNodeBuilder
 import cz.creeperface.hytale.uimanager.Color
 import cz.creeperface.hytale.uimanager.UiDsl
-import cz.creeperface.hytale.uimanager.UiPage
 import cz.creeperface.hytale.uimanager.builder.*
 import cz.creeperface.hytale.uimanager.enum.LabelAlignment
 import cz.creeperface.hytale.uimanager.enum.LayoutMode

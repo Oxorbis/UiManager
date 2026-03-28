@@ -14,7 +14,7 @@ import kotlin.collections.component2
 class EventResponse(
     val eventId: Int,
     val shiftHeld: Boolean,
-    val values: Map<String, String>
+    val values: Map<String, Any?>
 ) {
 
     companion object {
@@ -34,11 +34,16 @@ class EventResponse(
     private class EventResponseDeserializer : JsonDeserializer<EventResponse> {
         override fun deserialize(json: JsonElement, typeOfT: Type, context: JsonDeserializationContext): EventResponse {
             val obj = json.asJsonObject
-            val values = mutableMapOf<String, String>()
+            val values = mutableMapOf<String, Any?>()
 
             obj.entrySet().forEach { (key, value) ->
                 if (key.startsWith("@")) {
-                    values[key] = value.asString
+                    values[key] = when {
+                        value.isJsonNull -> null
+                        value.asJsonPrimitive.isBoolean -> value.asBoolean
+                        value.asJsonPrimitive.isNumber -> value.asNumber
+                        else -> value.asString
+                    }
                 }
             }
 

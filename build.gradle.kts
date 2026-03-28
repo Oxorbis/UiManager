@@ -11,6 +11,8 @@ version = "1.0.0"
 repositories {
     mavenLocal()
     mavenCentral()
+    maven("https://maven.pokeskies.com/releases")
+    maven("https://maven.hytale-modding.info/releases")
 }
 
 dependencies {
@@ -23,6 +25,8 @@ dependencies {
     val hytaleServerJar = files("${userHomeDir.absolutePath}/Library/Application Support/Hytale/install/release/package/game/latest/Server/HytaleServer.jar")
     compileOnly(hytaleServerJar)
     testImplementation(hytaleServerJar)
+
+    compileOnly("aster.amo:kytale:1.4.4")
 
     implementation("com.squareup:kotlinpoet:2.0.0")
     implementation("com.google.code.gson:gson:2.11.0")

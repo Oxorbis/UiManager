@@ -276,19 +276,37 @@ class UiManagerPlugin(init: JavaPluginInit) : JavaPlugin(init) {
 
         event<PlayerConnectEvent> { event ->
             try {
+                logger.atInfo().log("Injecting player network channel wrapper...")
+
                 val playerRef = event.playerRef
                 val packetHandler = event.playerRef.packetHandler
 
                 val channelsField = PacketHandler::class.java.getDeclaredField("channels")
                 channelsField.isAccessible = true
-                val channels = channelsField.get(packetHandler) as Array<Channel>
+                val channels = channelsField.get(packetHandler) as Array<Channel?>
+
+                var injected = false
 
                 channels.indices.forEach { i ->
-                    channels[i] = DelegatedChannel(channels[i]) { msg ->
+                    val channel = channels[i]
+
+                    if (channel == null) {
+                        logger.atInfo().log("Skipping null channel at index: $i")
+                        return@forEach
+                    }
+
+                    channels[i] = DelegatedChannel(channel) { msg ->
                         if (msg is CustomHud && msg.clear && !UiManager.firstSendPlayers.contains(playerRef)) {
                             throw RuntimeException("Another plugin tried to clear player ${playerRef.username} HUD")
                         }
                     }
+
+                    injected = true
+                    logger.atInfo().log("Injected channel wrapper at index: $i")
+                }
+
+                if (!injected) {
+                    logger.atWarning().log("Could not injecting player network channel wrapper.")
                 }
 
             } catch (e: Throwable) {

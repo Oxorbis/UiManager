@@ -1,4 +1,4 @@
-@file:OptIn(ExperimentalAtomicApi::class)
+@file:OptIn(ExperimentalAtomicApi::class, ExperimentalTime::class)
 
 package cz.creeperface.hytale.uimanager
 
@@ -46,6 +46,7 @@ import kotlin.reflect.full.primaryConstructor
 import kotlin.time.Clock
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
 
 //class OpenPage {
@@ -97,7 +98,7 @@ class PageInstance(
     var lifeTime: CustomPageLifetime,
     var lastSentPage: UiPage,
     val pageData: PageData,
-    var eventBindings: MutableList<EventBinding>,
+    var eventBindings: MutableMap<Int, EventBinding>,
     val userData: Any
 )
 
@@ -403,7 +404,7 @@ object UiManager {
                     lifetime,
                     pageData.page,
                     pageData,
-                    eventBindings.toMutableList(),
+                    eventBindings.toMutableMap(),
                     userData,
                 )
             }
@@ -429,6 +430,11 @@ object UiManager {
                 } catch (e: Exception) {
                     HytaleLogger.getLogger().atInfo().withCause(e).log("Failed to parse response")
                     return
+                }
+                HytaleLogger.getLogger().atInfo().log("response: $eventResponse")
+
+                eventResponse.values.forEach { string, any ->
+                    HytaleLogger.getLogger().atInfo().log("key: $string, value type: ${any?.javaClass?.simpleName}, value: $any")
                 }
 
                 handlePageEvent(playerRef, pageData, eventResponse)
@@ -491,7 +497,7 @@ object UiManager {
 
     private fun handlePageEvent(playerRef: PlayerRef, pageData: PageData, response: EventResponse) {
         val pageInstance = openPages[playerRef] ?: return
-        val eventBinding = pageInstance.eventBindings.getOrNull(response.eventId) ?: return
+        val eventBinding = pageInstance.eventBindings[response.eventId] ?: return
 
         val ctx = EventContext(playerRef, response, response.values)
 
@@ -564,16 +570,10 @@ object UiManager {
         val commandBuilder = UICommandBuilder()
         val eventBuilder = UIEventBuilder()
 
-        val addedNodes = UiDiffProcessor.generateUpdateCommands(openPage.lastSentPage, newPage, commandBuilder)
-        val eventBindings = mutableListOf<EventBinding>()
-        
-        addedNodes.forEach { node ->
-            eventBindings.addAll(
-                addEventBindings(node, eventBuilder)
-            )
-        }
+        UiDiffProcessor.generateUpdateCommands(openPage.lastSentPage, newPage, commandBuilder)
+        val eventBindings = addEventBindings(newPage, eventBuilder)
 
-        processPageForms(openPage.pageData, commandBuilder, null, formData)
+        processPageForms(openPage.pageData, commandBuilder, eventBuilder, formData)
 
         commandBuilder.commands.forEach { command ->
             HytaleLogger.getLogger().atInfo().log("Command: ${command.type} - ${command.selector}, ${command.data}, ${command.text}")
@@ -588,6 +588,7 @@ object UiManager {
             eventBuilder.events
         ))
 
+        openPage.eventBindings = eventBindings.toMutableMap()
         openPage.lastSentPage = newPage
     }
 
@@ -853,14 +854,18 @@ object UiManager {
         return forms
     }
 
-    private fun addEventBindings(page: UiPage, eventBuilder: UIEventBuilder): List<EventBinding> {
+    private fun addEventBindings(page: UiPage, eventBuilder: UIEventBuilder): Map<Int, EventBinding> {
         val eventBindings = getEventBindings(page)
-        eventBindings.forEach { addEventBinding(it, eventBuilder) }
+        val result = mutableMapOf<Int, EventBinding>()
+        eventBindings.forEach { binding ->
+            val eventId = addEventBinding(binding, eventBuilder)
+            result[eventId] = binding
+        }
 
-        return eventBindings
+        return result
     }
 
-    private fun addEventBindings(node: GenericNode, eventBuilder: UIEventBuilder): List<EventBinding> {
+    private fun addEventBindings(node: GenericNode, eventBuilder: UIEventBuilder): Map<Int, EventBinding> {
         val source = node.source
         val eventBindings = mutableListOf<EventBinding>()
 
@@ -872,11 +877,15 @@ object UiManager {
             }
         }
 
-        eventBindings.forEach { addEventBinding(it, eventBuilder) }
-        return eventBindings
+        val result = mutableMapOf<Int, EventBinding>()
+        eventBindings.forEach { binding ->
+            val eventId = addEventBinding(binding, eventBuilder)
+            result[eventId] = binding
+        }
+        return result
     }
 
-    private fun addEventBinding(eventBinding: EventBinding, eventBuilder: UIEventBuilder) {
+    private fun addEventBinding(eventBinding: EventBinding, eventBuilder: UIEventBuilder): Int {
         val eventData = EventData()
         val eventId = eventIdCounter.getAndIncrement()
         eventData.append("EventId", eventId.toString())
@@ -898,6 +907,8 @@ object UiManager {
             eventData,
             false
         )
+
+        return eventId
     }
 
     private val eventIdCounter = AtomicInteger(0)
