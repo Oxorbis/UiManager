@@ -4,6 +4,7 @@ import cz.creeperface.hytale.uimanager.special.UiForm
 
 @UiDsl
 class UiPage : ChildNodeBuilder {
+    override var nodeListener: ((node: UiNode) -> Unit)? = null
     override val children = mutableListOf<UiNode>()
     val nodes get() = children
     val variables = mutableMapOf<String, Any>()

@@ -51,7 +51,7 @@ tasks.register<JavaExec>("generateUi") {
     description = "Generates UI classes from ui_structure_report.json"
     classpath = sourceSets["uigen"].runtimeClasspath
     mainClass.set("cz.creeperface.hytale.uimanager.UiGeneratorKt")
-    args("ui_structure_report.json", "src/main/kotlin")
+    args("src/uigen/resources/ui_structure_report.json", "src/main/kotlin")
 }
 
 tasks.register<JavaExec>("testUi") {

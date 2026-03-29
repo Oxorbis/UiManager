@@ -6,7 +6,6 @@ import cz.creeperface.hytale.uimanager.IdGenerator
 import cz.creeperface.hytale.uimanager.UiNode
 import cz.creeperface.hytale.uimanager.UiNodeWithChildren
 import cz.creeperface.hytale.uimanager.enum.LayoutMode
-import cz.creeperface.hytale.uimanager.node.UiGroup
 import cz.creeperface.hytale.uimanager.property.rebindable
 import cz.creeperface.hytale.uimanager.type.UiAnchor
 import cz.creeperface.hytale.uimanager.type.UiPadding
@@ -32,29 +31,23 @@ class UiListGroup(
     UiNodeWithChildren,
     ChildNodeBuilder {
 
+    init {
+        this.anchor = anchor
+        this.background = background
+        this.flexWeight = flexWeight
+        this.hitTestVisible = hitTestVisible
+        this.padding = padding
+        this.textTooltipShowDelay = textTooltipShowDelay
+        this.textTooltipStyle = textTooltipStyle
+        this.tooltipText = tooltipText
+        this.visible = visible
+    }
+
     override var omitName: Boolean by rebindable(omitName)
-
-    public var anchor: UiAnchor? by rebindable(anchor)
-
-    public var background: UiPatchStyle? by rebindable(background)
-
-    public var flexWeight: Int? by rebindable(flexWeight)
-
-    public var hitTestVisible: Boolean? by rebindable(hitTestVisible)
 
     public var layoutMode: LayoutMode? by rebindable(layoutMode)
 
-    public var padding: UiPadding? by rebindable(padding)
-
     public var scrollbarStyle: UiScrollbarStyle? by rebindable(scrollbarStyle)
-
-    public var textTooltipShowDelay: Double? by rebindable(textTooltipShowDelay)
-
-    public var textTooltipStyle: UiTextTooltipStyle? by rebindable(textTooltipStyle)
-
-    public var tooltipText: String? by rebindable(tooltipText)
-
-    public var visible: Boolean? by rebindable(visible)
 
     override var children: MutableList<UiNode> = mutableListOf()
 
@@ -80,19 +73,9 @@ class UiListGroup(
 
     override fun clone(): UiNode {
         val clone = UiListGroup()
-        clone.id = this.id
-        clone.omitName = this.omitName
-        clone.anchor = this.anchor
-        clone.background = this.background
-        clone.flexWeight = this.flexWeight
-        clone.hitTestVisible = this.hitTestVisible
+        cloneBaseProperties(clone)
         clone.layoutMode = this.layoutMode
-        clone.padding = this.padding
         clone.scrollbarStyle = this.scrollbarStyle
-        clone.textTooltipShowDelay = this.textTooltipShowDelay
-        clone.textTooltipStyle = this.textTooltipStyle
-        clone.tooltipText = this.tooltipText
-        clone.visible = this.visible
         this.children.forEach { child ->
             clone.children.add(child.clone())
         }

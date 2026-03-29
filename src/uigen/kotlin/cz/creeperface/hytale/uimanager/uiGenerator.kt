@@ -21,6 +21,9 @@ class UiGenerator(private val reportFile: File, private val outputDir: File) {
     private var enumsJson: JsonObject? = null
     private var typesJson: JsonObject? = null
 
+    // Properties present in every single node type - promoted to UiNode/BaseUiNode
+    private var universalProperties: Map<String, TypeName> = emptyMap()
+
     fun generate() {
         val json = gson.fromJson(reportFile.readText(), JsonObject::class.java)
         loadOverrides()
@@ -31,6 +34,7 @@ class UiGenerator(private val reportFile: File, private val outputDir: File) {
 
         this.enumsJson = enums
         this.typesJson = types
+        this.universalProperties = computeUniversalProperties(nodes)
 
         generateInfrastructure()
         generateEnums(enums)
@@ -38,6 +42,23 @@ class UiGenerator(private val reportFile: File, private val outputDir: File) {
         generateNodes(nodes)
         generateIdGenerator()
         generateBuilders(nodes)
+    }
+
+    private fun computeUniversalProperties(nodes: JsonObject): Map<String, TypeName> {
+        val allNodeProperties = nodes.entrySet().map { (_, data) ->
+            val props = data.asJsonObject.getAsJsonObject("properties") ?: return@map emptySet<String>()
+            props.entrySet().map { it.key }.toSet()
+        }
+        if (allNodeProperties.isEmpty()) return emptyMap()
+
+        val universal = allNodeProperties.reduce { acc, set -> acc.intersect(set) }
+
+        // Resolve types from the first node that has each property
+        val firstNode = nodes.entrySet().first().value.asJsonObject.getAsJsonObject("properties")
+        return universal.associateWith { propName ->
+            val propTypes = firstNode.getAsJsonArray(propName).map { it.asString }
+            mapToKotlinType(propTypes)
+        }
     }
 
     private fun loadOverrides() {
@@ -66,19 +87,30 @@ class UiGenerator(private val reportFile: File, private val outputDir: File) {
         val uiTypeInterface = ClassName(rootPackage, "UiType")
         val hasDelegatesInterface = ClassName("$rootPackage.property", "HasDelegates")
         val rebindableClass = ClassName("$rootPackage.property", "Rebindable")
+        val rebindableFunc = MemberName("$rootPackage.property", "rebindable")
         val eventBindingClass = ClassName("$rootPackage.event", "EventBinding")
         val excludePropertyAnnotation = ClassName(rootPackage, "ExcludeProperty")
         val excludePropertyAnnotationOnGet = AnnotationSpec.builder(excludePropertyAnnotation)
             .useSiteTarget(AnnotationSpec.UseSiteTarget.GET)
             .build()
 
+        val nodeListenerType = LambdaTypeName.get(
+            parameters = listOf(ParameterSpec.builder("node", uiNodeInterface).build()),
+            returnType = UNIT
+        ).copy(nullable = true)
+
         val uiNodeWithChildren = TypeSpec.interfaceBuilder("UiNodeWithChildren")
             .addProperty(PropertySpec.builder("children", MUTABLE_LIST.parameterizedBy(uiNodeInterface))
                 .addAnnotation(excludePropertyAnnotationOnGet)
                 .build())
+            .addProperty(PropertySpec.builder("nodeListener", nodeListenerType)
+                .addAnnotation(excludePropertyAnnotationOnGet)
+                .mutable()
+                .build())
             .addFunction(FunSpec.builder("addNodeToChildren")
                 .addParameter("node", uiNodeInterface)
                 .addStatement("children.add(node)")
+                .addStatement("nodeListener?.invoke(node)")
                 .build())
             .build()
 
@@ -103,7 +135,7 @@ class UiGenerator(private val reportFile: File, private val outputDir: File) {
                 .build())
             .build()
 
-        val uiNode = TypeSpec.interfaceBuilder("UiNode")
+        val uiNodeBuilder = TypeSpec.interfaceBuilder("UiNode")
             .addAnnotation(ClassName(rootPackage, "UiDsl"))
             .addProperty(PropertySpec.builder("id", String::class.asTypeName().copy(nullable = true))
                 .addAnnotation(excludePropertyAnnotationOnGet)
@@ -117,13 +149,25 @@ class UiGenerator(private val reportFile: File, private val outputDir: File) {
             .addProperty(PropertySpec.builder("isDirty", BOOLEAN)
                 .addAnnotation(excludePropertyAnnotationOnGet)
                 .build())
+            .addProperty(PropertySpec.builder("nodeListener", nodeListenerType)
+                .addAnnotation(excludePropertyAnnotationOnGet)
+                .mutable().build())
+
+        // Add universal properties to the interface
+        universalProperties.entries.sortedBy { it.key }.forEach { (propName, kotlinType) ->
+            val propertyName = propName.replaceFirstChar { it.lowercase() }
+            uiNodeBuilder.addProperty(PropertySpec.builder(propertyName, kotlinType)
+                .mutable().build())
+        }
+
+        val uiNode = uiNodeBuilder
             .addFunction(FunSpec.builder("markDirty").addModifiers(KModifier.ABSTRACT).build())
             .addFunction(FunSpec.builder("resetDirty").addModifiers(KModifier.ABSTRACT).build())
             .addFunction(FunSpec.builder("clone").addModifiers(KModifier.ABSTRACT).returns(uiNodeInterface).build())
             .addFunction(FunSpec.builder("getEventBindings").addModifiers(KModifier.ABSTRACT).returns(LIST.parameterizedBy(eventBindingClass)).build())
             .build()
 
-        val baseUiNode = TypeSpec.classBuilder("BaseUiNode")
+        val baseUiNodeBuilder = TypeSpec.classBuilder("BaseUiNode")
             .addModifiers(KModifier.ABSTRACT)
             .addSuperinterface(uiNodeInterface)
             .addSuperinterface(hasDelegatesInterface)
@@ -137,6 +181,12 @@ class UiGenerator(private val reportFile: File, private val outputDir: File) {
                 .addAnnotation(excludePropertyAnnotation)
                 .initializer("mutableMapOf()")
                 .build())
+            .addProperty(PropertySpec.builder("nodeListener", nodeListenerType)
+                .addModifiers(KModifier.OVERRIDE)
+                .addAnnotation(excludePropertyAnnotation)
+                .mutable()
+                .initializer("null")
+                .build())
             .addProperty(PropertySpec.builder("isDirty", BOOLEAN)
                 .addModifiers(KModifier.OPEN, KModifier.OVERRIDE)
                 .addAnnotation(excludePropertyAnnotation)
@@ -148,6 +198,29 @@ class UiGenerator(private val reportFile: File, private val outputDir: File) {
                 .addModifiers(KModifier.PRIVATE)
                 .initializer("mutableListOf()")
                 .build())
+
+        // Add universal properties with rebindable delegates
+        universalProperties.entries.sortedBy { it.key }.forEach { (propName, kotlinType) ->
+            val propertyName = propName.replaceFirstChar { it.lowercase() }
+            baseUiNodeBuilder.addProperty(PropertySpec.builder(propertyName, kotlinType)
+                .addModifiers(KModifier.OVERRIDE)
+                .mutable(true)
+                .delegate("%M(null)", rebindableFunc)
+                .build())
+        }
+
+        // Add cloneBaseProperties helper for use in generated clone() methods
+        val cloneBasePropsBuilder = FunSpec.builder("cloneBaseProperties")
+            .addModifiers(KModifier.PROTECTED)
+            .addParameter("target", ClassName(rootPackage, "BaseUiNode"))
+            .addStatement("target.id = this.id")
+            .addStatement("target.omitName = this.omitName")
+        universalProperties.entries.sortedBy { it.key }.forEach { (propName, _) ->
+            val propertyName = propName.replaceFirstChar { it.lowercase() }
+            cloneBasePropsBuilder.addStatement("target.%L = this.%L", propertyName, propertyName)
+        }
+
+        val baseUiNode = baseUiNodeBuilder
             .addFunction(FunSpec.builder("markDirty")
                 .addModifiers(KModifier.OPEN, KModifier.OVERRIDE)
                 .addComment("This is mainly for manual triggers or when a child becomes dirty")
@@ -162,6 +235,7 @@ class UiGenerator(private val reportFile: File, private val outputDir: File) {
                 .returns(LIST.parameterizedBy(eventBindingClass))
                 .addStatement("return eventBindings")
                 .build())
+            .addFunction(cloneBasePropsBuilder.build())
             .addFunction(FunSpec.builder("addEventBinding")
                 .addParameter("type", ClassName("com.hypixel.hytale.protocol.packets.interface_", "CustomUIEventBindingType"))
                 .addParameter("nodeId", STRING)
@@ -443,7 +517,10 @@ class UiGenerator(private val reportFile: File, private val outputDir: File) {
                 }
             }
 
-            allProperties.entries.sortedBy { it.key }.forEach { (propName, propTypes) ->
+            // Filter out universal properties - they are inherited from BaseUiNode
+            val nodeSpecificProperties = allProperties.filter { it.key !in universalProperties }
+
+            nodeSpecificProperties.entries.sortedBy { it.key }.forEach { (propName, propTypes) ->
                 val normalizedPropName = propName.replaceFirstChar { it.lowercase() }
                 val override = overrides.entries.find { it.key.replaceFirstChar { it.lowercase() } == normalizedPropName }?.value
                 val kotlinType = if (override != null) {
@@ -522,10 +599,9 @@ class UiGenerator(private val reportFile: File, private val outputDir: File) {
                 .addModifiers(KModifier.OVERRIDE)
                 .returns(uiNodeInterface)
                 .addStatement("val clone = %L()", className)
-                .addStatement("clone.id = this.id")
-                .addStatement("clone.omitName = this.omitName")
+                .addStatement("cloneBaseProperties(clone)")
 
-            allProperties.entries.sortedBy { it.key }.forEach { (propName, _) ->
+            nodeSpecificProperties.entries.sortedBy { it.key }.forEach { (propName, _) ->
                 val propertyName = propName.replaceFirstChar { it.lowercase() }
                 cloneBuilder.addStatement("clone.%L = this.%L", propertyName, propertyName)
             }
