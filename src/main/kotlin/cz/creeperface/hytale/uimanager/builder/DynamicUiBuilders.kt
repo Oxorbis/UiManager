@@ -15,17 +15,19 @@ inline fun <T : ChildNodeBuilder> T.conditionalBlock(
     falseBuilder: T.() -> Unit
 ) {
     this.nodeListener = { node ->
-        if (!condition) {
-            node.visible = false
-        }
+        node.visible = condition
+//        if (!condition) {
+//            node.visible = false
+//        }
     }
 
     trueBuilder()
 
     this.nodeListener = { node ->
-        if (condition) {
-            node.visible = false
-        }
+        node.visible = !condition
+//        if (condition) {
+//            node.visible = false
+//        }
     }
 
     falseBuilder()
@@ -42,9 +44,10 @@ inline fun <T : ChildNodeBuilder, D> T.listBlock(
         val item = data.getOrNull(i)
 
         this.nodeListener = { node ->
-            if (item == null) {
-                node.visible = false
-            }
+            node.visible = item != null
+//            if (item == null) {
+//                node.visible = false
+//            }
         }
 
         builder(item)

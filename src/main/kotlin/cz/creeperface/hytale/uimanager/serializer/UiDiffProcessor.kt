@@ -9,7 +9,6 @@ import com.hypixel.hytale.protocol.packets.interface_.CustomUICommandType
 import com.hypixel.hytale.protocol.packets.setup.AssetFinalize
 import com.hypixel.hytale.protocol.packets.setup.AssetInitialize
 import com.hypixel.hytale.protocol.packets.setup.AssetPart
-import com.hypixel.hytale.protocol.packets.setup.RequestCommonAssetsRebuild
 import com.hypixel.hytale.server.core.ui.builder.UICommandBuilder
 import com.hypixel.hytale.server.core.universe.Universe
 import cz.creeperface.hytale.uimanager.UiManager.ASSET_PATH
@@ -32,6 +31,7 @@ object UiDiffProcessor {
         fun set(path: String, value: Float)
         fun set(path: String, value: Double)
         fun set(path: String, value: String)
+        fun setNull(path: String)
         fun setRaw(path: String, value: Any) {
             set(path, value.toString())
         }
@@ -50,6 +50,9 @@ object UiDiffProcessor {
             override fun set(path: String, value: Float) { commandBuilder.set(path, value) }
             override fun set(path: String, value: Double) { commandBuilder.set(path, value) }
             override fun set(path: String, value: String) { commandBuilder.set(path, value) }
+            override fun setNull(path: String) {
+                commandBuilder.setNull(path)
+            }
             override fun appendInline(path: String, serializedNode: String) {
                 commandBuilder.appendInline(path, serializedNode)
             }
@@ -146,6 +149,13 @@ object UiDiffProcessor {
                 } else {
                     setCommand(commandBuilder, "$selector.$name", name, value)
                 }
+            }
+        }
+
+        // Detect properties removed (present in initial, absent in current) -> set to null
+        initial.properties.forEach { (name, _) ->
+            if (name !in current.properties) {
+                setCommand(commandBuilder, "$selector.$name", name, null)
             }
         }
 
@@ -379,6 +389,7 @@ object UiDiffProcessor {
     private fun setCommand(commandBuilder: CommandBuilder, path: String, name: String, value: Any?) {
 //        HytaleLogger.getLogger().atInfo().log("Command $path - $value")
         when (value) {
+            null -> commandBuilder.setNull(path)
             is Boolean -> commandBuilder.set(path, value)
             is Int -> commandBuilder.set(path, value)
             is Float -> commandBuilder.set(path, value)
@@ -397,22 +408,19 @@ object UiDiffProcessor {
         current.forEach { (name, value) ->
             val initialValue = initial[name]
             if (value != initialValue) {
-//                HytaleLogger.getLogger().atInfo().log("Comparing property $name for node $path, value = $value, initialValue = $initialValue")
-
-                if (value != null) {
-//                    HytaleLogger.getLogger().atInfo().log("Value class: ${value::class.simpleName}")
-                }
-
-                if (initialValue != null) {
-//                    HytaleLogger.getLogger().atInfo().log("Initial Value class: ${initialValue::class.simpleName}")
-                }
-
                 if (value is Map<*, *> && initialValue is Map<*, *>) {
                     @Suppress("UNCHECKED_CAST")
                     compareObjects(initialValue as Map<String, Any?>, value as Map<String, Any?>, "$path.$name", commandBuilder)
                 } else {
                     setCommand(commandBuilder, "$path.$name", name, value)
                 }
+            }
+        }
+
+        // Detect removed keys
+        initial.forEach { (name, _) ->
+            if (name !in current) {
+                setCommand(commandBuilder, "$path.$name", name, null)
             }
         }
     }
