@@ -9,8 +9,6 @@ import com.hypixel.hytale.component.Ref
 import com.hypixel.hytale.component.Store
 import com.hypixel.hytale.logger.HytaleLogger
 import com.hypixel.hytale.protocol.packets.interface_.*
-import com.hypixel.hytale.protocol.packets.setup.RequestCommonAssetsRebuild
-import com.hypixel.hytale.server.core.HytaleServer
 import com.hypixel.hytale.server.core.asset.common.CommonAssetModule
 import com.hypixel.hytale.server.core.entity.entities.player.hud.CustomUIHud
 import com.hypixel.hytale.server.core.entity.entities.player.pages.InteractiveCustomUIPage
@@ -35,7 +33,6 @@ import cz.creeperface.hytale.uimanager.util.CustomHudHelper
 import cz.creeperface.hytale.uimanager.util.getComponent
 import cz.creeperface.hytale.uimanager.util.player
 import java.util.concurrent.ConcurrentHashMap
-import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.locks.ReentrantReadWriteLock
 import kotlin.concurrent.atomics.ExperimentalAtomicApi
@@ -122,6 +119,7 @@ object UiManager {
 
     private val updateLock = ReentrantReadWriteLock()
     private val scheduledUpdates = ConcurrentHashMap<PlayerRef, MutableSet<HudPageInstance>>()
+    private val pendingHudRemovals = ConcurrentHashMap<PlayerRef, MutableSet<String>>()
 
     internal val firstSendPlayers = ConcurrentHashMap.newKeySet<PlayerRef>()
 
@@ -327,7 +325,6 @@ object UiManager {
         val sentPage = page.clone()
 
         val commandBuilder = UICommandBuilder()
-        val eventBuilder = UIEventBuilder()
 
         UiDiffProcessor.generateUpdateCommands(
             pageData.page,
@@ -354,6 +351,15 @@ object UiManager {
         openHuds[pageId] = pageInstance
 
         scheduleHudUpdate(playerRef, pageInstance)
+    }
+
+    fun hideHud(pageId: String, playerRef: PlayerRef) {
+        val removed = openHuds[playerRef]?.remove(pageId) ?: return
+
+        updateLock.read {
+            pendingHudRemovals.computeIfAbsent(playerRef) { mutableSetOf() }.add(pageId)
+            scheduledUpdates.computeIfAbsent(playerRef) { mutableSetOf() }
+        }
     }
 
     fun showPage(
@@ -447,52 +453,11 @@ object UiManager {
             }
         }
 
-//        val commandBuilder = UICommandBuilder()
-//        val eventBuilder = UIEventBuilder()
-//        interactivePage.build(
-//            ref,
-//            commandBuilder,
-//            eventBuilder,
-//            ref.store,
-//        )
-
         pageManager.openCustomPage(
             ref,
             ref.store,
             interactivePage
         )
-
-//        playerRef.packetHandler.writeNoCache(
-//            RequestCommonAssetsRebuild()
-//        )
-
-//        pageManager.updateCustomPage(
-//            CustomPage(
-//                interactivePage.javaClass.getName(),
-//                true,
-//                true,
-//                lifetime,
-//                commandBuilder.commands,
-//                eventBuilder.events
-//            )
-//        )
-
-//        val world = playerRef.player.world
-//
-//        HytaleServer.SCHEDULED_EXECUTOR.schedule({
-//            world?.execute {
-//                pageManager.updateCustomPage(
-//                    CustomPage(
-//                        interactivePage.javaClass.getName(),
-//                        true,
-//                        true,
-//                        lifetime,
-//                        commandBuilder.commands,
-//                        eventBuilder.events
-//                    )
-//                )
-//            }
-//        }, 1, TimeUnit.SECONDS)
     }
 
     private fun handlePageEvent(playerRef: PlayerRef, pageData: PageData, response: EventResponse) {
@@ -656,6 +621,12 @@ object UiManager {
             this.scheduledUpdates.clear()
             updates
         }
+
+        val hudRemovals = updateLock.write {
+            val removals = this.pendingHudRemovals.toMap()
+            this.pendingHudRemovals.clear()
+            removals
+        }
         scheduledUpdates.forEach { (playerRef, instances) ->
             val commands = mutableListOf<CustomUICommand>()
             val eventBuilder = UIEventBuilder()
@@ -698,6 +669,10 @@ object UiManager {
                 pagesWithUpdate[pageId]?.forEach { pageUpdateCommand ->
                     commands.add(pageUpdateCommand)
                 }
+            }
+
+            hudRemovals[playerRef]?.forEach { pageId ->
+                commands.add(CustomUICommand(CustomUICommandType.Clear, "#$pageId", null, null))
             }
 
             val customHuds = synchronized(customHuds) {
@@ -759,7 +734,6 @@ object UiManager {
         }
 
         pageInstance.page = dynamicPageData.factory(playerRef, context)
-//        generatePageIds(pageInstance.page)
 
         updateHudPageInstance(playerRef, pageInstance)
     }
@@ -767,43 +741,8 @@ object UiManager {
     internal fun onPlayerDisconnect(playerRef: PlayerRef) {
         openHuds.remove(playerRef)
         openPages.remove(playerRef)
+        pendingHudRemovals.remove(playerRef)
     }
-
-//    private fun generatePageIds(page: UiPage) {
-//        val allIds = mutableSetOf<String>()
-//
-//        fun processNode(node: UiNode, parentId: String?) {
-//            val parentId = if (node !is UiForm<*>) {
-//                if (node.id == null) {
-//                    val clazz = node::class
-//                    val nodeName = clazz.companionObjectInstance?.let { companion ->
-//                        val nodeNameProp = companion::class.declaredMemberProperties.find { it.name == "NODE_NAME" }
-//                        nodeNameProp?.apply { isAccessible = true }?.call(companion) as? String
-//                    } ?: clazz.simpleName?.removePrefix("Ui") ?: "Unknown"
-//
-//                    node.id = if (parentId == null) nodeName else "${parentId}_$nodeName"
-//                }
-//
-//                if (!allIds.add(node.id!!)) {
-//                    throw IllegalStateException("Duplicate node ID found: ${node.id}")
-//                }
-//
-//                node.id
-//            } else {
-//                parentId
-//            }
-//
-//            if (node is UiNodeWithChildren) {
-//                node.children.forEach { child ->
-//                    processNode(child, parentId)
-//                }
-//            }
-//        }
-//
-//        page.nodes.forEach { node ->
-//            processNode(node, null)
-//        }
-//    }
 
     private fun extractPageForms(page: UiPage): List<UiForm<*>> {
         val forms = mutableListOf<UiForm<*>>()
