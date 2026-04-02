@@ -1,33 +1,17 @@
 package cz.creeperface.hytale.uimanager
 
 import com.hypixel.hytale.protocol.packets.interface_.CustomUIEventBindingType
-import cz.creeperface.hytale.uimanager.ExcludeProperty
-import cz.creeperface.hytale.uimanager.`enum`.MouseWheelScrollBehaviourType
-import cz.creeperface.hytale.uimanager.`property`.HasDelegates
-import cz.creeperface.hytale.uimanager.`property`.Rebindable
-import cz.creeperface.hytale.uimanager.`property`.rebindable
+import cz.creeperface.hytale.uimanager.enum.MouseWheelScrollBehaviourType
 import cz.creeperface.hytale.uimanager.event.EventBinding
 import cz.creeperface.hytale.uimanager.event.EventContext
 import cz.creeperface.hytale.uimanager.event.eventBinding
+import cz.creeperface.hytale.uimanager.property.HasDelegates
+import cz.creeperface.hytale.uimanager.property.Rebindable
+import cz.creeperface.hytale.uimanager.property.rebindable
 import cz.creeperface.hytale.uimanager.type.UiAnchor
 import cz.creeperface.hytale.uimanager.type.UiPadding
 import cz.creeperface.hytale.uimanager.type.UiPatchStyle
 import cz.creeperface.hytale.uimanager.type.UiTextTooltipStyle
-import kotlin.Any
-import kotlin.Boolean
-import kotlin.Double
-import kotlin.DslMarker
-import kotlin.Int
-import kotlin.String
-import kotlin.Unit
-import kotlin.`annotation`.AnnotationRetention
-import kotlin.`annotation`.AnnotationTarget
-import kotlin.`annotation`.Retention
-import kotlin.`annotation`.Target
-import kotlin.collections.List
-import kotlin.collections.MutableList
-import kotlin.collections.MutableMap
-import kotlin.jvm.JvmStatic
 import kotlin.reflect.KProperty0
 
 @DslMarker
@@ -237,6 +221,21 @@ public data class Color(
   public val alpha: Double? = null,
 ) {
   override fun toString(): String = if (alpha != null) "$hex($alpha)" else hex
+
+    fun toArgbInt(): Int {
+        val clean = hex.removePrefix("#")
+        val r = clean.substring(0, 2).toInt(16)
+        val g = clean.substring(2, 4).toInt(16)
+        val b = clean.substring(4, 6).toInt(16)
+        val a = ((alpha ?: 1.0) * 255 + 0.5).toInt().coerceIn(0, 255)
+        return (a shl 24) or (r shl 16) or (g shl 8) or b
+    }
+
+    fun toRgbaHex(): String {
+        val clean = hex.removePrefix("#").uppercase()
+        val a = ((alpha ?: 1.0) * 255 + 0.5).toInt().coerceIn(0, 255)
+        return "#%s%02X".format(clean, a)
+    }
 
   public companion object {
     public operator fun invoke(`value`: String): Color = if (value.contains('(') && value.endsWith(')')) {

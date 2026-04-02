@@ -1,9 +1,8 @@
 package cz.creeperface.hytale.uimanager.serializer
 
 import cz.creeperface.hytale.uimanager.*
-import cz.creeperface.hytale.uimanager.node.*
 import cz.creeperface.hytale.uimanager.special.UiListGroup
-import cz.creeperface.hytale.uimanager.type.*
+import cz.creeperface.hytale.uimanager.type.UiPatchStyle
 import kotlin.reflect.KClass
 import kotlin.reflect.KVisibility
 import kotlin.reflect.full.companionObjectInstance
@@ -90,7 +89,7 @@ object UiSerializer {
             .distinct()
     }
 
-    fun toGenericNode(uiNode: Any, templates: List<Any> = emptyList()): GenericNode {
+    fun toGenericNode(uiNode: Any, templates: List<Any> = emptyList(), flattenPatchStyle: Boolean = true): GenericNode {
         val clazz = uiNode::class
         val nodeName = clazz.companionObjectInstance?.let { companion ->
             val nodeNameProp = companion::class.memberProperties.find { it.name == "NODE_NAME" }
@@ -110,9 +109,9 @@ object UiSerializer {
             uiNode
         )
 
-        val propsMap = serializeObject(uiNode, templates)
+        val propsMap = serializeObject(uiNode, templates, flattenPatchStyle)
         propsMap.forEach { (name, value) ->
-            genericNode.properties[name] = value
+            if (value != null) genericNode.properties[name] = value
         }
 
         // Children merging logic
@@ -146,13 +145,13 @@ object UiSerializer {
             val childrenForId = idToChildren[childId]!!
             val primary = childrenForId.first()
             val remaining = childrenForId.drop(1)
-            genericNode.children.add(toGenericNode(primary, remaining))
+            genericNode.children.add(toGenericNode(primary, remaining, flattenPatchStyle))
         }
 
         // Handle children without IDs (only from primary node)
         val children = (uiNode as? UiNodeWithChildren)?.children ?: emptyList()
         children.filter { it.id == null }.forEach { child ->
-            genericNode.children.add(toGenericNode(child))
+            genericNode.children.add(toGenericNode(child, flattenPatchStyle = flattenPatchStyle))
         }
 
         return genericNode
@@ -188,7 +187,11 @@ object UiSerializer {
         return false
     }
 
-    private fun serializeObject(value: Any, templates: List<Any> = emptyList()): Map<String, Any?> {
+    private fun serializeObject(
+        value: Any,
+        templates: List<Any> = emptyList(),
+        flattenPatchStyle: Boolean = true
+    ): Map<String, Any?> {
         val clazz = value::class
         val map = mutableMapOf<String, Any?>()
 
@@ -209,8 +212,8 @@ object UiSerializer {
             val primary = allInstances.first()
 
             if (primary is UiType) {
-                var serialized: Any? = serializeObject(primary, allInstances.drop(1))
-                if (primary is UiPatchStyle) {
+                var serialized: Any? = serializeObject(primary, allInstances.drop(1), flattenPatchStyle)
+                if (flattenPatchStyle && primary is UiPatchStyle) {
                     val m = serialized as Map<*, *>
                     if (m.size == 1 && m.containsKey("Color")) {
                         serialized = m["Color"]
@@ -249,8 +252,10 @@ object UiSerializer {
         val nextIndentStr = "  ".repeat(nextIndent)
 
         node.properties.forEach { (name, value) ->
+            val formatted = formatValue(name, value, nextIndent)
+            if (formatted.isEmpty()) return@forEach
             sb.append(nextIndentStr).append(name).append(": ")
-            sb.append(formatValue(name, value, nextIndent))
+            sb.append(formatted)
             sb.append(";\n")
         }
 
@@ -272,7 +277,7 @@ object UiSerializer {
         return when (value) {
             null -> "null"
             is GenericNode.Identifier -> value.value
-            is String -> if (quoteStrings) "\"$value\"" else value
+            is String -> if (quoteStrings) "\"${value.replace("\\", "\\\\").replace("\"", "\\\"")}\"" else value
             is Number -> value.toString()
             is Boolean -> value.toString()
             is Map<*, *> -> {

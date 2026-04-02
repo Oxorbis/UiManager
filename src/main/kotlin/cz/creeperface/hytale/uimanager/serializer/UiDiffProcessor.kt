@@ -11,11 +11,13 @@ import com.hypixel.hytale.protocol.packets.setup.AssetInitialize
 import com.hypixel.hytale.protocol.packets.setup.AssetPart
 import com.hypixel.hytale.server.core.ui.builder.UICommandBuilder
 import com.hypixel.hytale.server.core.universe.Universe
+import cz.creeperface.hytale.uimanager.Color
 import cz.creeperface.hytale.uimanager.UiManager.ASSET_PATH
 import cz.creeperface.hytale.uimanager.UiManager.PAGE_PATH
 import cz.creeperface.hytale.uimanager.UiPage
 import cz.creeperface.hytale.uimanager.asset.DynamicAsset
 import kotlin.reflect.full.declaredMemberProperties
+import kotlin.reflect.full.memberProperties
 import kotlin.reflect.jvm.isAccessible
 
 object UiDiffProcessor {
@@ -31,6 +33,7 @@ object UiDiffProcessor {
         fun set(path: String, value: Float)
         fun set(path: String, value: Double)
         fun set(path: String, value: String)
+        fun set(path: String, value: List<*>)
         fun setNull(path: String)
         fun setRaw(path: String, value: Any) {
             set(path, value.toString())
@@ -50,6 +53,9 @@ object UiDiffProcessor {
             override fun set(path: String, value: Float) { commandBuilder.set(path, value) }
             override fun set(path: String, value: Double) { commandBuilder.set(path, value) }
             override fun set(path: String, value: String) { commandBuilder.set(path, value) }
+            override fun set(path: String, value: List<*>) {
+                commandBuilder.set(path, value)
+            }
             override fun setNull(path: String) {
                 commandBuilder.setNull(path)
             }
@@ -84,8 +90,8 @@ object UiDiffProcessor {
     }
 
     fun generateUpdateCommands(initial: UiPage, current: UiPage, commandBuilder: CommandBuilder): List<GenericNode> {
-        val initialNodes = initial.nodes.map { UiSerializer.toGenericNode(it) }
-        val currentNodes = current.nodes.map { UiSerializer.toGenericNode(it) }
+        val initialNodes = initial.nodes.map { UiSerializer.toGenericNode(it, flattenPatchStyle = false) }
+        val currentNodes = current.nodes.map { UiSerializer.toGenericNode(it, flattenPatchStyle = false) }
 
         // Root nodes comparison
         // Assuming the order of root nodes might change or they might be added/removed, 
@@ -139,7 +145,15 @@ object UiDiffProcessor {
             val initialValue = initial.properties[name]
             if (value != initialValue) {
 //                HytaleLogger.getLogger().atInfo().log("Comparing property $name for node $selector, value = $value, initialValue = $initialValue")
-                if (value is Map<*, *> && initialValue is Map<*, *>) {
+                if (value is List<*> || initialValue is List<*>) {
+                    // List properties (e.g. DropdownBox Entries) need original values from source
+                    val sourceValue = getSourcePropertyValue(current.source, name)
+                    if (sourceValue is List<*>) {
+                        commandBuilder.set("$selector.$name", sourceValue)
+                    } else {
+                        commandBuilder.setNull("$selector.$name")
+                    }
+                } else if (value is Map<*, *> && initialValue is Map<*, *>) {
                     @Suppress("UNCHECKED_CAST")
                     compareObjects(initialValue as Map<String, Any?>, value as Map<String, Any?>, "$selector.$name", commandBuilder)
                 } else if (value is Map<*, *> || initialValue is Map<*, *>) {
@@ -378,6 +392,14 @@ object UiDiffProcessor {
         }
     }
 
+    private fun getSourcePropertyValue(source: Any?, pascalName: String): Any? {
+        if (source == null) return null
+        val camelName = pascalName.replaceFirstChar { it.lowercase() }
+        val prop = source::class.memberProperties.find { it.name == camelName }
+        prop?.isAccessible = true
+        return prop?.call(source)
+    }
+
     private fun nodesMatchIdentity(a: GenericNode, b: GenericNode): Boolean {
         if (a.name != b.name) return false
         if (a.id != b.id) return false
@@ -394,6 +416,14 @@ object UiDiffProcessor {
             is Int -> commandBuilder.set(path, value)
             is Float -> commandBuilder.set(path, value)
             is Double -> commandBuilder.set(path, value)
+            is GenericNode.Identifier -> {
+                val color = parseColor(value.value)
+                if (color != null) {
+                    commandBuilder.set(path, color.toRgbaHex())
+                } else {
+                    commandBuilder.set(path, value.value)
+                }
+            }
             else -> {
                 if (value is Map<*, *>) {
                     commandBuilder.setRaw(path, value)
@@ -404,7 +434,39 @@ object UiDiffProcessor {
         }
     }
 
+    private fun parseColor(value: String): Color? {
+        if (!value.startsWith("#")) return null
+        val hex = value.substringBefore('(')
+        val cleanHex = hex.removePrefix("#")
+        if (cleanHex.length != 6 || !cleanHex.all { it.isLetterOrDigit() }) return null
+        return Color.invoke(value)
+    }
+
+    private fun convertColorsInMap(map: Map<String, Any?>): Map<String, Any?> {
+        return map.mapValues { (_, value) ->
+            when (value) {
+                is GenericNode.Identifier -> {
+                    val color = parseColor(value.value)
+                    if (color != null) color.toRgbaHex() else value
+                }
+
+                is Map<*, *> -> {
+                    @Suppress("UNCHECKED_CAST")
+                    convertColorsInMap(value as Map<String, Any?>)
+                }
+
+                else -> value
+            }
+        }
+    }
+
     private fun compareObjects(initial: Map<String, Any?>, current: Map<String, Any?>, path: String, commandBuilder: CommandBuilder) {
+        // If TexturePath changed, set the whole object at once
+        if (current["TexturePath"] != initial["TexturePath"]) {
+            setCommand(commandBuilder, path, path.substringAfterLast('.'), convertColorsInMap(current))
+            return
+        }
+
         current.forEach { (name, value) ->
             val initialValue = initial[name]
             if (value != initialValue) {

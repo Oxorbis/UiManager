@@ -1,15 +1,14 @@
 package cz.creeperface.hytale.uimanager.serializer
 
 import com.hypixel.hytale.protocol.packets.interface_.CustomUIEventBindingType
+import cz.creeperface.hytale.uimanager.Color
+import cz.creeperface.hytale.uimanager.UiNode
 import cz.creeperface.hytale.uimanager.builder.customUi
 import cz.creeperface.hytale.uimanager.builder.group
 import cz.creeperface.hytale.uimanager.builder.textButton
 import cz.creeperface.hytale.uimanager.type.anchor
 import cz.creeperface.hytale.uimanager.type.patchStyle
-import cz.creeperface.hytale.uimanager.UiNode
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertFalse
-import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 
 class UiDiffProcessorTest {
@@ -26,6 +25,13 @@ class UiDiffProcessorTest {
         override fun set(path: String, value: Float) { commands[path] = value }
         override fun set(path: String, value: Double) { commands[path] = value }
         override fun set(path: String, value: String) { commands[path] = value }
+        override fun set(path: String, value: List<*>) {
+            commands[path] = value
+        }
+
+        override fun setNull(path: String) {
+            commands[path] = null
+        }
         override fun appendInline(path: String, serializedNode: String) {
             appends.add(path to serializedNode)
         }
@@ -109,14 +115,296 @@ class UiDiffProcessorTest {
         UiDiffProcessor.generateUpdateCommands(initial, current, builder)
         
         val commands = builder.commands
-        assertTrue(commands.containsKey("#btn.Anchor.Top") || commands.containsKey("#btn.Anchor"), "Should contain #btn.Anchor.Top or #btn.Anchor. Commands: ${commands.keys}")
-        
-        if (commands.containsKey("#btn.Anchor.Top")) {
-            assertEquals(20, (commands["#btn.Anchor.Top"] as? Number)?.toInt())
-        } else {
-            val anchor = commands["#btn.Anchor"] as Map<String, Any?>
-            assertEquals(20, (anchor["Top"] as? Number)?.toInt())
+        assertTrue(
+            commands.containsKey("#btn.Anchor.Top"),
+            "Should contain #btn.Anchor.Top, not #btn.Anchor. Commands: ${commands.keys}"
+        )
+        assertEquals(20, (commands["#btn.Anchor.Top"] as? Number)?.toInt())
+    }
+
+    @Test
+    fun testNestedPatchStyleColorChange() {
+        val initial = customUi {
+            group {
+                id = "node"
+                background = patchStyle {
+                    color = Color("#FF0000")
+                }
+            }
         }
+
+        val current = customUi {
+            group {
+                id = "node"
+                background = patchStyle {
+                    color = Color("#00FF00")
+                }
+            }
+        }
+
+        val builder = MockCommandBuilder()
+        UiDiffProcessor.generateUpdateCommands(initial, current, builder)
+
+        val commands = builder.commands
+        assertEquals(1, commands.size, "Should have exactly one command. Commands: $commands")
+        assertTrue(
+            commands.containsKey("#node.Background.Color"),
+            "Path should be #node.Background.Color, not #node.Background. Commands: ${commands.keys}"
+        )
+        val colorValue = commands["#node.Background.Color"]
+        assertTrue(
+            colorValue is String,
+            "Color should be sent as 8-char hex string, got ${colorValue?.let { it::class.simpleName }}: $colorValue"
+        )
+        assertEquals("#00FF00FF", colorValue)
+    }
+
+    @Test
+    fun testNestedPatchStyleColorChangeWithAlpha() {
+        val initial = customUi {
+            group {
+                id = "node"
+                background = patchStyle {
+                    color = Color("#fa1528", 0.5)
+                }
+            }
+        }
+
+        val current = customUi {
+            group {
+                id = "node"
+                background = patchStyle {
+                    color = Color("#fa1528", 0.7)
+                }
+            }
+        }
+
+        val builder = MockCommandBuilder()
+        UiDiffProcessor.generateUpdateCommands(initial, current, builder)
+
+        val commands = builder.commands
+        assertEquals(1, commands.size, "Should have exactly one command. Commands: $commands")
+        assertTrue(
+            commands.containsKey("#node.Background.Color"),
+            "Path should be #node.Background.Color. Commands: ${commands.keys}"
+        )
+        val colorValue = commands["#node.Background.Color"]
+        assertEquals("#FA1528B3", colorValue, "Color should be #RRGGBBAA with alpha 0.7 -> 0xB3")
+    }
+
+    @Test
+    fun testColorOnlyChangeWithTexturePath() {
+        // When only Color changes but TexturePath stays the same,
+        // should set Background.Color individually, NOT the whole Background
+        val initial = customUi {
+            group {
+                id = "node"
+                background = patchStyle {
+                    color = Color("#FF0000")
+                    texturePath = "path/to/texture"
+                }
+            }
+        }
+
+        val current = customUi {
+            group {
+                id = "node"
+                background = patchStyle {
+                    color = Color("#00FF00")
+                    texturePath = "path/to/texture"
+                }
+            }
+        }
+
+        val builder = MockCommandBuilder()
+        UiDiffProcessor.generateUpdateCommands(initial, current, builder)
+
+        val commands = builder.commands
+        assertEquals(1, commands.size, "Should have exactly one command for the changed color. Commands: $commands")
+        assertTrue(
+            commands.containsKey("#node.Background.Color"),
+            "Path should be #node.Background.Color, not #node.Background. Commands: ${commands.keys}"
+        )
+        assertFalse(
+            commands.containsKey("#node.Background"),
+            "Should NOT set the whole Background when only Color changed. Commands: ${commands.keys}"
+        )
+        assertEquals("#00FF00FF", commands["#node.Background.Color"], "Color value should be RGBA hex")
+    }
+
+    @Test
+    fun testColorOnlyChangeWithAlphaAndTexturePath() {
+        // When only Color (with alpha) changes but TexturePath stays the same
+        val initial = customUi {
+            group {
+                id = "node"
+                background = patchStyle {
+                    color = Color("#ff0000", 0.35)
+                    texturePath = "path/to/texture"
+                }
+            }
+        }
+
+        val current = customUi {
+            group {
+                id = "node"
+                background = patchStyle {
+                    color = Color("#ff0000", 0.7)
+                    texturePath = "path/to/texture"
+                }
+            }
+        }
+
+        val builder = MockCommandBuilder()
+        UiDiffProcessor.generateUpdateCommands(initial, current, builder)
+
+        val commands = builder.commands
+        assertEquals(1, commands.size, "Should have exactly one command. Commands: $commands")
+        assertTrue(
+            commands.containsKey("#node.Background.Color"),
+            "Path should be #node.Background.Color. Commands: ${commands.keys}"
+        )
+        assertEquals("#FF0000B3", commands["#node.Background.Color"], "Color value should be RGBA hex with alpha")
+    }
+
+    @Test
+    fun testTexturePathOnlyChange() {
+        // When TexturePath changes, set the whole Background with colors converted
+        val initial = customUi {
+            group {
+                id = "node"
+                background = patchStyle {
+                    texturePath = "path/to/old"
+                    color = Color("#FF0000")
+                }
+            }
+        }
+
+        val current = customUi {
+            group {
+                id = "node"
+                background = patchStyle {
+                    texturePath = "path/to/new"
+                    color = Color("#FF0000")
+                }
+            }
+        }
+
+        val builder = MockCommandBuilder()
+        UiDiffProcessor.generateUpdateCommands(initial, current, builder)
+
+        val commands = builder.commands
+        assertEquals(1, commands.size, "Should have exactly one command. Commands: $commands")
+        assertTrue(
+            commands.containsKey("#node.Background"),
+            "Should set #node.Background as a whole. Commands: ${commands.keys}"
+        )
+        assertFalse(
+            commands.containsKey("#node.Background.TexturePath"),
+            "Should NOT set Background.TexturePath individually. Commands: ${commands.keys}"
+        )
+        val bgMap = commands["#node.Background"]
+        assertTrue(bgMap is Map<*, *>, "Value should be the full PatchStyle map")
+        bgMap as Map<*, *>
+        assertEquals("path/to/new", bgMap["TexturePath"])
+        assertEquals("#FF0000FF", bgMap["Color"], "Color inside the map should be converted to RGBA hex")
+    }
+
+    @Test
+    fun testTexturePathChangeWithAlphaColor() {
+        val initial = customUi {
+            group {
+                id = "node"
+                background = patchStyle {
+                    texturePath = "path/to/old"
+                    color = Color("#fa1528", 0.7)
+                }
+            }
+        }
+
+        val current = customUi {
+            group {
+                id = "node"
+                background = patchStyle {
+                    texturePath = "path/to/new"
+                    color = Color("#fa1528", 0.7)
+                }
+            }
+        }
+
+        val builder = MockCommandBuilder()
+        UiDiffProcessor.generateUpdateCommands(initial, current, builder)
+
+        val commands = builder.commands
+        assertEquals(1, commands.size, "Should have exactly one command. Commands: $commands")
+        val bgMap = commands["#node.Background"] as Map<*, *>
+        assertEquals("#FA1528B3", bgMap["Color"], "Color with alpha should be converted to RGBA hex")
+    }
+
+    @Test
+    fun testTexturePathAndColorBothChange() {
+        // When both change, should still set whole Background
+        val initial = customUi {
+            group {
+                id = "node"
+                background = patchStyle {
+                    texturePath = "path/to/old"
+                    color = Color("#FF0000")
+                }
+            }
+        }
+
+        val current = customUi {
+            group {
+                id = "node"
+                background = patchStyle {
+                    texturePath = "path/to/new"
+                    color = Color("#00FF00", 0.5)
+                }
+            }
+        }
+
+        val builder = MockCommandBuilder()
+        UiDiffProcessor.generateUpdateCommands(initial, current, builder)
+
+        val commands = builder.commands
+        assertEquals(1, commands.size, "Should have exactly one command. Commands: $commands")
+        val bgMap = commands["#node.Background"] as Map<*, *>
+        assertEquals("path/to/new", bgMap["TexturePath"])
+        assertEquals("#00FF0080", bgMap["Color"], "Color should be RGBA hex")
+    }
+
+    @Test
+    fun testNullPropertiesNotSerialized() {
+        // PatchStyle with only texturePath (color is null) should not include Color key
+        val initial = customUi {
+            group {
+                id = "node"
+                background = patchStyle {
+                    texturePath = "path/to/old"
+                }
+            }
+        }
+
+        val current = customUi {
+            group {
+                id = "node"
+                background = patchStyle {
+                    texturePath = "path/to/new"
+                }
+            }
+        }
+
+        val builder = MockCommandBuilder()
+        UiDiffProcessor.generateUpdateCommands(initial, current, builder)
+
+        val commands = builder.commands
+        assertEquals(1, commands.size, "Should have exactly one command. Commands: $commands")
+        val bgMap = commands["#node.Background"]
+        assertTrue(bgMap is Map<*, *>, "Value should be the full PatchStyle map")
+        bgMap as Map<*, *>
+        assertEquals("path/to/new", bgMap["TexturePath"])
+        assertFalse(bgMap.containsKey("Color"), "Null color should not be included in the map. Keys: ${bgMap.keys}")
     }
 
     @Test
@@ -433,6 +721,13 @@ class UiDiffProcessorTest {
             override fun set(path: String, value: Float) { operations.add("set:$path") }
             override fun set(path: String, value: Double) { operations.add("set:$path") }
             override fun set(path: String, value: String) { operations.add("set:$path") }
+            override fun set(path: String, value: List<*>) {
+                operations.add("set:$path")
+            }
+
+            override fun setNull(path: String) {
+                operations.add("setNull:$path")
+            }
             override fun setRaw(path: String, value: Any) { operations.add("set:$path") }
             override fun appendInline(path: String, serializedNode: String) { operations.add("append:$path") }
             override fun insertBeforeInline(selector: String, serializedNode: String) { operations.add("insert:$selector") }

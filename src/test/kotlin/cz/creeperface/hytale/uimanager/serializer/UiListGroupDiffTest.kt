@@ -25,6 +25,13 @@ class UiListGroupDiffTest {
         override fun set(path: String, value: Float) { commands.add(Command.Set(path, value)) }
         override fun set(path: String, value: Double) { commands.add(Command.Set(path, value)) }
         override fun set(path: String, value: String) { commands.add(Command.Set(path, value)) }
+        override fun set(path: String, value: List<*>) {
+            commands.add(Command.Set(path, value))
+        }
+
+        override fun setNull(path: String) {
+            commands.add(Command.Set(path, null))
+        }
         override fun setRaw(path: String, value: Any) { commands.add(Command.Set(path, value)) }
 
         override fun appendInline(path: String, serializedNode: String) { commands.add(Command.AppendInline(path, serializedNode)) }

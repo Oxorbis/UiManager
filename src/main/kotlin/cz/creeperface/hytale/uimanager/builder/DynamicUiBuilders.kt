@@ -38,7 +38,7 @@ inline fun <T : ChildNodeBuilder> T.conditionalBlock(
 inline fun <T : ChildNodeBuilder, D> T.listBlock(
     data: List<D?>,
     maxItems: Int,
-    builder: T.(D?) -> Unit,
+    builder: T.(D?, Int) -> Unit,
 ) {
     for (i in 0 until maxItems) {
         val item = data.getOrNull(i)
@@ -50,7 +50,7 @@ inline fun <T : ChildNodeBuilder, D> T.listBlock(
 //            }
         }
 
-        builder(item)
+        builder(item, i)
 
         this.nodeListener = null
     }
