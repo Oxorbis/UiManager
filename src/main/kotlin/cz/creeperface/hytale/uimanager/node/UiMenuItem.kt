@@ -1,18 +1,12 @@
 package cz.creeperface.hytale.uimanager.node
 
-import cz.creeperface.hytale.uimanager.BaseUiNode
-import cz.creeperface.hytale.uimanager.ChildNodeBuilder
-import cz.creeperface.hytale.uimanager.ExcludeProperty
-import cz.creeperface.hytale.uimanager.UiNode
-import cz.creeperface.hytale.uimanager.UiNodeWithChildren
-import cz.creeperface.hytale.uimanager.`property`.rebindable
+import com.hypixel.hytale.server.core.Message
+import cz.creeperface.hytale.uimanager.*
+import cz.creeperface.hytale.uimanager.property.rebindable
 import cz.creeperface.hytale.uimanager.type.UiAnchor
 import cz.creeperface.hytale.uimanager.type.UiPatchStyle
 import cz.creeperface.hytale.uimanager.type.UiPopupStyle
 import cz.creeperface.hytale.uimanager.type.UiTextButtonStyle
-import kotlin.Boolean
-import kotlin.String
-import kotlin.collections.MutableList
 
 public open class UiMenuItem(
   @ExcludeProperty
@@ -25,8 +19,8 @@ public open class UiMenuItem(
   popupStyle: UiPopupStyle? = null,
   selectedStyle: UiTextButtonStyle? = null,
   style: UiTextButtonStyle? = null,
-  text: String? = null,
-  textSpans: String? = null,
+  text: Message? = null,
+  textSpans: Message? = null,
 ) : BaseUiNode(),
     UiNodeWithChildren,
     ChildNodeBuilder {
@@ -47,9 +41,9 @@ public open class UiMenuItem(
 
   public var style: UiTextButtonStyle? by rebindable(style)
 
-  public var text: String? by rebindable(text)
+    public var text: Message? by rebindable(text)
 
-  public var textSpans: String? by rebindable(textSpans)
+    public var textSpans: Message? by rebindable(textSpans)
 
   @ExcludeProperty
   override val children: MutableList<UiNode> = mutableListOf()

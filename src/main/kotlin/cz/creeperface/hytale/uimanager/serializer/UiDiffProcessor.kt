@@ -9,6 +9,7 @@ import com.hypixel.hytale.protocol.packets.interface_.CustomUICommandType
 import com.hypixel.hytale.protocol.packets.setup.AssetFinalize
 import com.hypixel.hytale.protocol.packets.setup.AssetInitialize
 import com.hypixel.hytale.protocol.packets.setup.AssetPart
+import com.hypixel.hytale.server.core.Message
 import com.hypixel.hytale.server.core.ui.builder.UICommandBuilder
 import com.hypixel.hytale.server.core.universe.Universe
 import cz.creeperface.hytale.uimanager.Color
@@ -33,6 +34,7 @@ object UiDiffProcessor {
         fun set(path: String, value: Float)
         fun set(path: String, value: Double)
         fun set(path: String, value: String)
+        fun set(path: String, value: Message)
         fun set(path: String, value: List<*>)
         fun setNull(path: String)
         fun setRaw(path: String, value: Any) {
@@ -44,6 +46,10 @@ object UiDiffProcessor {
         fun insertBefore(selector: String, documentPath: String)
         fun remove(selector: String)
         fun clear(selector: String)
+
+        fun createNodeAsset(node: GenericNode, listParent: Boolean): String {
+            return getDynamicAssetForNode(node, listParent)
+        }
     }
 
     fun generateUpdateCommands(initial: UiPage, current: UiPage, commandBuilder: UICommandBuilder): List<GenericNode> {
@@ -53,6 +59,9 @@ object UiDiffProcessor {
             override fun set(path: String, value: Float) { commandBuilder.set(path, value) }
             override fun set(path: String, value: Double) { commandBuilder.set(path, value) }
             override fun set(path: String, value: String) { commandBuilder.set(path, value) }
+            override fun set(path: String, value: Message) {
+                commandBuilder.set(path, value)
+            }
             override fun set(path: String, value: List<*>) {
                 commandBuilder.set(path, value)
             }
@@ -379,7 +388,7 @@ object UiDiffProcessor {
         val strippedNode = node.copyNodeRecursive()
         stripSimpleProperties(strippedNode, simpleProperties)
 
-        val partialNodeAsset = getDynamicAssetForNode(strippedNode, listParent)
+        val partialNodeAsset = commandBuilder.createNodeAsset(strippedNode, listParent)
 
         if (insertBefore != null) {
             commandBuilder.insertBefore(insertBefore, partialNodeAsset)
@@ -416,6 +425,7 @@ object UiDiffProcessor {
             is Int -> commandBuilder.set(path, value)
             is Float -> commandBuilder.set(path, value)
             is Double -> commandBuilder.set(path, value)
+            is GenericNode.MessageValue -> commandBuilder.set(path, value.message)
             is GenericNode.Identifier -> {
                 val color = parseColor(value.value)
                 if (color != null) {

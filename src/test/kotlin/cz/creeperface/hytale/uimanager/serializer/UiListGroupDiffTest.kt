@@ -1,8 +1,10 @@
 package cz.creeperface.hytale.uimanager.serializer
 
+import com.hypixel.hytale.server.core.Message
 import cz.creeperface.hytale.uimanager.builder.customUi
 import cz.creeperface.hytale.uimanager.builder.textButton
 import cz.creeperface.hytale.uimanager.special.listGroup
+import cz.creeperface.hytale.uimanager.util.toMessage
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
@@ -25,6 +27,9 @@ class UiListGroupDiffTest {
         override fun set(path: String, value: Float) { commands.add(Command.Set(path, value)) }
         override fun set(path: String, value: Double) { commands.add(Command.Set(path, value)) }
         override fun set(path: String, value: String) { commands.add(Command.Set(path, value)) }
+        override fun set(path: String, value: Message) {
+            commands.add(Command.Set(path, value))
+        }
         override fun set(path: String, value: List<*>) {
             commands.add(Command.Set(path, value))
         }
@@ -40,6 +45,9 @@ class UiListGroupDiffTest {
         override fun insertBefore(selector: String, documentPath: String) { commands.add(Command.InsertBeforeInline(selector, documentPath)) }
         override fun remove(selector: String) { commands.add(Command.Remove(selector)) }
         override fun clear(selector: String) { commands.add(Command.Clear(selector)) }
+        override fun createNodeAsset(node: GenericNode, listParent: Boolean): String {
+            return UiSerializer.serialize(node, listParent = listParent).trim()
+        }
     }
 
     @Test
@@ -48,7 +56,7 @@ class UiListGroupDiffTest {
             listGroup {
                 id = "list"
                 textButton {
-                    text = "Initial"
+                    text = "Initial".toMessage()
                 }
             }
         }
@@ -57,7 +65,7 @@ class UiListGroupDiffTest {
             listGroup {
                 id = "list"
                 textButton {
-                    text = "Changed"
+                    text = "Changed".toMessage()
                 }
             }
         }
@@ -67,7 +75,10 @@ class UiListGroupDiffTest {
 
         val sets = builder.commands.filterIsInstance<MockCommandBuilder.Command.Set>()
         // We expect #list[0].Text
-        assertTrue(sets.any { it.path == "#list[0].Text" && it.value == "Changed" }, "Should have command for #list[0].Text. Commands: ${builder.commands}")
+        assertTrue(
+            sets.any { it.path == "#list[0].Text" && it.value is Message && (it.value as Message).rawText == "Changed" },
+            "Should have command for #list[0].Text. Commands: ${builder.commands}"
+        )
     }
 
     @Test
@@ -75,15 +86,15 @@ class UiListGroupDiffTest {
         val initial = customUi {
             listGroup {
                 id = "list"
-                textButton { text = "A" }
+                textButton { text = "A".toMessage() }
             }
         }
 
         val current = customUi {
             listGroup {
                 id = "list"
-                textButton { text = "A" }
-                textButton { text = "B" }
+                textButton { text = "A".toMessage() }
+                textButton { text = "B".toMessage() }
             }
         }
 
@@ -93,7 +104,12 @@ class UiListGroupDiffTest {
         val appends = builder.commands.filterIsInstance<MockCommandBuilder.Command.AppendInline>()
         assertEquals(1, appends.size)
         assertEquals("#list", appends[0].path)
-        assertTrue(appends[0].serializedNode.contains("Text: \"B\""))
+        // Text is a simple (non-Map) property, so it's stripped from the serialized node and set separately
+        val sets = builder.commands.filterIsInstance<MockCommandBuilder.Command.Set>()
+        assertTrue(
+            sets.any { it.value is Message && (it.value as Message).rawText == "B" },
+            "Text 'B' should be set via a separate command. Commands: ${builder.commands}"
+        )
     }
 
     @Test
@@ -101,27 +117,31 @@ class UiListGroupDiffTest {
         val initial = customUi {
             listGroup {
                 id = "list"
-                textButton { text = "A" }
-                textButton { text = "B" }
+                textButton { text = "A".toMessage() }
+                textButton { text = "B".toMessage() }
             }
         }
 
         val current = customUi {
             listGroup {
                 id = "list"
-                textButton { text = "A" }
-                textButton { text = "C" }
-                textButton { text = "B" }
+                textButton { text = "A".toMessage() }
+                textButton { text = "C".toMessage() }
+                textButton { text = "B".toMessage() }
             }
         }
 
         val builder = MockCommandBuilder()
         UiDiffProcessor.generateUpdateCommands(initial, current, builder)
 
-        val inserts = builder.commands.filterIsInstance<MockCommandBuilder.Command.InsertBeforeInline>()
-        assertEquals(1, inserts.size)
-        assertEquals("#list[1]", inserts[0].selector)
-        assertTrue(inserts[0].serializedNode.contains("Text: \"C\""))
+        // Without IDs, the diff matches by index: index 0 stays A, index 1 changes B→C, index 2 (B) is appended
+        val sets = builder.commands.filterIsInstance<MockCommandBuilder.Command.Set>()
+        assertTrue(
+            sets.any { it.path == "#list[1].Text" && it.value is Message && (it.value as Message).rawText == "C" },
+            "Index 1 text should change to C. Commands: ${builder.commands}"
+        )
+        val appends = builder.commands.filterIsInstance<MockCommandBuilder.Command.AppendInline>()
+        assertEquals(1, appends.size, "B should be appended at the end")
     }
 
     @Test
@@ -129,17 +149,17 @@ class UiListGroupDiffTest {
         val initial = customUi {
             listGroup {
                 id = "list"
-                textButton { text = "A" }
-                textButton { text = "B" }
-                textButton { text = "C" }
+                textButton { text = "A".toMessage() }
+                textButton { text = "B".toMessage() }
+                textButton { text = "C".toMessage() }
             }
         }
 
         val current = customUi {
             listGroup {
                 id = "list"
-                textButton { text = "A" }
-                textButton { text = "C" }
+                textButton { text = "A".toMessage() }
+                textButton { text = "C".toMessage() }
             }
         }
 
@@ -148,7 +168,8 @@ class UiListGroupDiffTest {
 
         val removes = builder.commands.filterIsInstance<MockCommandBuilder.Command.Remove>()
         assertEquals(1, removes.size)
-        assertEquals("#list[1]", removes[0].selector)
+        // Without IDs, the diff processor matches by index: index 0 stays A, index 1 changes B→C, index 2 is removed
+        assertEquals("#list[2]", removes[0].selector)
     }
 
     @Test
@@ -156,7 +177,7 @@ class UiListGroupDiffTest {
         val initial = customUi {
             listGroup {
                 id = "list"
-                textButton { text = "A" }
+                textButton { text = "A".toMessage() }
             }
         }
 

@@ -1,11 +1,9 @@
 package cz.creeperface.hytale.uimanager.type
 
+import com.hypixel.hytale.server.core.Message
 import cz.creeperface.hytale.uimanager.ExcludeProperty
 import cz.creeperface.hytale.uimanager.UiDsl
 import cz.creeperface.hytale.uimanager.UiType
-import kotlin.String
-import kotlin.Unit
-import kotlin.collections.MutableList
 
 @UiDsl
 public data class UiLabeledCheckBoxStyleState(
@@ -19,7 +17,7 @@ public data class UiLabeledCheckBoxStyleState(
   public var hoveredSound: UiSoundStyle? = null,
   public var pressedBackground: UiPatchStyle? = null,
   public var pressedLabelStyle: UiLabelStyle? = null,
-  public var text: String? = null,
+  public var text: Message? = null,
 ) : UiType {
   @ExcludeProperty
   override val templates: MutableList<UiType> = mutableListOf()

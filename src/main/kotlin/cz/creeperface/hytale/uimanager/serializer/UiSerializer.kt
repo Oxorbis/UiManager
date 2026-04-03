@@ -1,5 +1,6 @@
 package cz.creeperface.hytale.uimanager.serializer
 
+import com.hypixel.hytale.server.core.Message
 import cz.creeperface.hytale.uimanager.*
 import cz.creeperface.hytale.uimanager.special.UiListGroup
 import cz.creeperface.hytale.uimanager.type.UiPatchStyle
@@ -162,6 +163,7 @@ object UiSerializer {
         if (value is Enum<*>) return GenericNode.Identifier(value.name)
         if (value is Number || value is Boolean) return value
         if (value is List<*>) return value.map { if (it != null) serializeValue(it) else null }
+        if (value is Message) return serializeMessage(value)
 
         val s = value.toString()
         if (isIdentifierInternal(s)) {
@@ -175,11 +177,18 @@ object UiSerializer {
         }
     }
 
+    private fun serializeMessage(message: Message): Any {
+        val messageId = message.messageId
+        val serialized = if (messageId != null) {
+            GenericNode.Identifier("%$messageId")
+        } else {
+            message.rawText ?: ""
+        }
+        return GenericNode.MessageValue(message, serialized)
+    }
+
     private fun isIdentifierInternal(s: String): Boolean {
         if (s.isEmpty()) return false
-
-        // Translation
-        if (s.startsWith("%")) return true
 
         // Variable/Import
         if (s.startsWith("@") || s.startsWith("$")) return true
@@ -276,6 +285,7 @@ object UiSerializer {
     fun formatValue(name: String, value: Any?, indent: Int = 0, quoteStrings: Boolean = true): String {
         return when (value) {
             null -> "null"
+            is GenericNode.MessageValue -> formatValue(name, value.serialized, indent, quoteStrings)
             is GenericNode.Identifier -> value.value
             is String -> if (quoteStrings) "\"${value.replace("\\", "\\\\").replace("\"", "\\\"")}\"" else value
             is Number -> value.toString()

@@ -1,6 +1,7 @@
 package cz.creeperface.hytale.uimanager.serializer
 
 import com.hypixel.hytale.protocol.packets.interface_.CustomUIEventBindingType
+import com.hypixel.hytale.server.core.Message
 import cz.creeperface.hytale.uimanager.Color
 import cz.creeperface.hytale.uimanager.UiNode
 import cz.creeperface.hytale.uimanager.builder.customUi
@@ -8,6 +9,7 @@ import cz.creeperface.hytale.uimanager.builder.group
 import cz.creeperface.hytale.uimanager.builder.textButton
 import cz.creeperface.hytale.uimanager.type.anchor
 import cz.creeperface.hytale.uimanager.type.patchStyle
+import cz.creeperface.hytale.uimanager.util.toMessage
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 
@@ -25,6 +27,9 @@ class UiDiffProcessorTest {
         override fun set(path: String, value: Float) { commands[path] = value }
         override fun set(path: String, value: Double) { commands[path] = value }
         override fun set(path: String, value: String) { commands[path] = value }
+        override fun set(path: String, value: Message) {
+            commands[path] = value
+        }
         override fun set(path: String, value: List<*>) {
             commands[path] = value
         }
@@ -53,13 +58,16 @@ class UiDiffProcessorTest {
         override fun clear(selector: String) {
             clears.add(selector)
         }
+        override fun createNodeAsset(node: GenericNode, listParent: Boolean): String {
+            return UiSerializer.serialize(node, listParent = listParent).trim()
+        }
     }
 
     @Test
     fun testNoChanges() {
         val initial = customUi {
             textButton {
-                text = "Same"
+                text = "Same".toMessage()
             }
         }
         
@@ -76,19 +84,21 @@ class UiDiffProcessorTest {
         val initial = customUi {
             textButton {
                 id = "btn"
-                text = "Initial"
+                text = "Initial".toMessage()
             }
         }
-        
+
         val current = initial.clone()
-        (current.nodes[0] as cz.creeperface.hytale.uimanager.node.UiTextButton).text = "Changed"
-        
+        (current.nodes[0] as cz.creeperface.hytale.uimanager.node.UiTextButton).text = "Changed".toMessage()
+
         val builder = MockCommandBuilder()
         UiDiffProcessor.generateUpdateCommands(initial, current, builder)
-        
+
         val commands = builder.commands
         assertEquals(1, commands.size)
-        assertEquals("Changed", commands["#btn.Text"])
+        val textValue = commands["#btn.Text"]
+        assertTrue(textValue is Message, "Should be a Message, got ${textValue?.let { it::class.simpleName }}")
+        assertEquals("Changed", (textValue as Message).rawText)
     }
 
     @Test
@@ -475,7 +485,7 @@ class UiDiffProcessorTest {
                 textButton { id = "btn1" }
                 textButton {
                     id = "btn2"
-                    text = "New"
+                    text = "New".toMessage()
                 }
                 textButton { id = "btn3" }
             }
@@ -508,18 +518,16 @@ class UiDiffProcessorTest {
         val builder = MockCommandBuilder()
         UiDiffProcessor.generateUpdateCommands(initial, current, builder)
 
-        assertEquals(2, builder.appends.size)
-        
-        // First append to #parent
+        assertEquals(1, builder.appends.size)
+
+        // Append to #parent — the whole subtree including children is serialized together
         val (path1, serialized1) = builder.appends[0]
         assertEquals("#parent", path1)
         assertTrue(serialized1.contains("Group") && serialized1.contains("#childGroup"))
-        assertFalse(serialized1.contains("TextButton"), "Parent serialization should not contain children anymore")
-
-        // Second append to #childGroup
-        val (path2, serialized2) = builder.appends[1]
-        assertEquals("#childGroup", path2)
-        assertTrue(serialized2.contains("TextButton") && serialized2.contains("#btn1"))
+        assertTrue(
+            serialized1.contains("TextButton") && serialized1.contains("#btn1"),
+            "Children should be included in the serialized subtree"
+        )
     }
 
     @Test
@@ -605,7 +613,7 @@ class UiDiffProcessorTest {
                     group {
                         id = "level2"
                         textButton { id = "btn1" }
-                        textButton { id = "btn2"; text = "A" }
+                        textButton { id = "btn2"; text = "A".toMessage() }
                     }
                 }
             }
@@ -619,7 +627,9 @@ class UiDiffProcessorTest {
         val serialized = builder.appends[0].second
         assertTrue(serialized.contains("#btn2"))
         assertFalse(serialized.contains("Text: \"A\""))
-        assertEquals("A", builder.commands["#btn2.Text"])
+        val textValue = builder.commands["#btn2.Text"]
+        assertTrue(textValue is Message, "Should be a Message")
+        assertEquals("A", (textValue as Message).rawText)
     }
 
     @Test
@@ -645,14 +655,16 @@ class UiDiffProcessorTest {
 
         assertEquals(1, builder.appends.size)
         val serialized = builder.appends[0].second
-        
-        // Background should NOT be in the serialized node
-        assertFalse(serialized.contains("Background:"), "Background should be stripped from serialized node. Serialized: $serialized")
+
         assertTrue(serialized.contains("#btnWithIcon"), "Serialized node should contain its ID")
 
-        // Background should NOT be set via a separate command because it's a Map (complex property)
-        assertFalse(builder.commands.containsKey("#btnWithIcon.Background"), "Should NOT have a command to set Background because it's a Map")
-        assertTrue(serialized.contains("TexturePath"), "Background Map should still be in serialized node")
+        // Background is a Map (complex property) — it stays in the serialized node, not set via command
+        assertTrue(serialized.contains("Background:"), "Background (Map) should remain in serialized node")
+        assertTrue(serialized.contains("TexturePath"), "Background Map should contain TexturePath in serialized node")
+        assertFalse(
+            builder.commands.containsKey("#btnWithIcon.Background"),
+            "Should NOT have a command to set Background because it's in the serialized node"
+        )
     }
 
     @Test
@@ -721,6 +733,9 @@ class UiDiffProcessorTest {
             override fun set(path: String, value: Float) { operations.add("set:$path") }
             override fun set(path: String, value: Double) { operations.add("set:$path") }
             override fun set(path: String, value: String) { operations.add("set:$path") }
+            override fun set(path: String, value: Message) {
+                operations.add("set:$path")
+            }
             override fun set(path: String, value: List<*>) {
                 operations.add("set:$path")
             }
@@ -735,6 +750,9 @@ class UiDiffProcessorTest {
             override fun insertBefore(selector: String, documentPath: String) { operations.add("insert:$selector") }
             override fun remove(selector: String) { operations.add("remove:$selector") }
             override fun clear(selector: String) { operations.add("clear:$selector") }
+            override fun createNodeAsset(node: GenericNode, listParent: Boolean): String {
+                return UiSerializer.serialize(node, listParent = listParent).trim()
+            }
         }
 
         val orderedBuilder = OrderedMockCommandBuilder()

@@ -1,13 +1,12 @@
 package cz.creeperface.hytale.uimanager.node
 
+import com.hypixel.hytale.server.core.Message
 import cz.creeperface.hytale.uimanager.BaseUiNode
 import cz.creeperface.hytale.uimanager.ExcludeProperty
 import cz.creeperface.hytale.uimanager.UiNode
-import cz.creeperface.hytale.uimanager.`enum`.LayoutMode
-import cz.creeperface.hytale.uimanager.`property`.rebindable
+import cz.creeperface.hytale.uimanager.enum.LayoutMode
+import cz.creeperface.hytale.uimanager.property.rebindable
 import cz.creeperface.hytale.uimanager.type.UiButtonStyle
-import kotlin.Boolean
-import kotlin.String
 
 public open class UiDropdownEntry(
   @ExcludeProperty
@@ -17,7 +16,7 @@ public open class UiDropdownEntry(
   layoutMode: LayoutMode? = null,
   selected: Boolean? = null,
   style: UiButtonStyle? = null,
-  text: String? = null,
+  text: Message? = null,
   `value`: String? = null,
 ) : BaseUiNode() {
   @ExcludeProperty
@@ -31,7 +30,7 @@ public open class UiDropdownEntry(
 
   public var style: UiButtonStyle? by rebindable(style)
 
-  public var text: String? by rebindable(text)
+    public var text: Message? by rebindable(text)
 
   public var `value`: String? by rebindable(value)
 

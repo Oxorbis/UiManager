@@ -1,5 +1,7 @@
 package cz.creeperface.hytale.uimanager.serializer
 
+import com.hypixel.hytale.server.core.Message
+
 data class GenericNode(
     var name: String,
     val id: String? = null,
@@ -18,5 +20,17 @@ data class GenericNode(
 
     data class Identifier(val value: String) {
         override fun toString() = value
+    }
+
+    data class MessageValue(val message: Message, val serialized: Any) {
+        override fun toString() = serialized.toString()
+
+        override fun equals(other: Any?): Boolean {
+            if (this === other) return true
+            if (other !is MessageValue) return false
+            return serialized == other.serialized
+        }
+
+        override fun hashCode() = serialized.hashCode()
     }
 }

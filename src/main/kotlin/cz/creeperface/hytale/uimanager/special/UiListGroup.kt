@@ -1,17 +1,10 @@
 package cz.creeperface.hytale.uimanager.special
 
-import cz.creeperface.hytale.uimanager.BaseUiNode
-import cz.creeperface.hytale.uimanager.ChildNodeBuilder
-import cz.creeperface.hytale.uimanager.IdGenerator
-import cz.creeperface.hytale.uimanager.UiNode
-import cz.creeperface.hytale.uimanager.UiNodeWithChildren
+import com.hypixel.hytale.server.core.Message
+import cz.creeperface.hytale.uimanager.*
 import cz.creeperface.hytale.uimanager.enum.LayoutMode
 import cz.creeperface.hytale.uimanager.property.rebindable
-import cz.creeperface.hytale.uimanager.type.UiAnchor
-import cz.creeperface.hytale.uimanager.type.UiPadding
-import cz.creeperface.hytale.uimanager.type.UiPatchStyle
-import cz.creeperface.hytale.uimanager.type.UiScrollbarStyle
-import cz.creeperface.hytale.uimanager.type.UiTextTooltipStyle
+import cz.creeperface.hytale.uimanager.type.*
 
 class UiListGroup(
     override var id: String? = null,
@@ -25,7 +18,7 @@ class UiListGroup(
     scrollbarStyle: UiScrollbarStyle? = null,
     textTooltipShowDelay: Double? = null,
     textTooltipStyle: UiTextTooltipStyle? = null,
-    tooltipText: String? = null,
+    tooltipText: Message? = null,
     visible: Boolean? = null,
 ) : BaseUiNode(),
     UiNodeWithChildren,

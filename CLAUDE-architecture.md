@@ -73,7 +73,9 @@ Mutable container for a complete UI page:
 **File**: `model/Observable.kt`
 
 `BaseObservable` provides `observable(initialValue)` delegate that notifies listeners on change.
-Used for data classes that drive UI updates (e.g., `BwData` with `var time: String by observable(time)`).
+Used for data classes that drive UI updates (e.g., `BwData` with `var time: Message by observable(time)`).
+Note: Bound properties must match the UI property type — text properties use `Message`, so data models should also use
+`Message`.
 
 ### Binding Syntax
 ```kotlin
@@ -122,7 +124,11 @@ Converts in-memory UI tree to Hytale `.ui` text format:
 1. Converts `UiNode` to `GenericNode` intermediate representation (handles template merging)
 2. Serializes `GenericNode` tree to text with proper formatting
 3. Properties in sorted map for consistent output
-4. Handles nested objects, identifiers, colors, enums, strings
+4. Handles nested objects, identifiers, colors, enums, strings, and `Message` values
+5. `Message` serialization: raw messages → quoted strings (`"text"`), translated messages → unquoted identifiers with
+   `%` prefix (`%server.key`)
+6. `Message` values are wrapped in `GenericNode.MessageValue` to preserve the original `Message` object for the diff
+   processor
 
 ### UiDiffProcessor
 **File**: `serializer/UiDiffProcessor.kt`
@@ -130,17 +136,29 @@ Converts in-memory UI tree to Hytale `.ui` text format:
 Generates minimal update commands by comparing initial vs current page state:
 - Matches nodes by ID or index+name
 - Property comparison: generates `set` commands for changed values
+- `Message` properties: passes the original `Message` object to `CommandBuilder.set(path, Message)`, which maps to
+  `UICommandBuilder.set(path, Message)` for proper Hytale protocol encoding
 - Child comparison: Two strategies:
   - **List nodes**: Match by name+ID, detect add/remove/reorder
   - **Regular containers**: If >70% unchanged, surgical updates; otherwise clear + re-append
 - Dynamic asset generation for new nodes (sent as temporary `.ui` assets)
 
-**Command Types:** `set`, `append`, `appendInline`, `insertBefore`, `insertBeforeInline`, `remove`, `clear`
+**Command Types:** `set` (Boolean, Int, Float, Double, String, Message, List), `setNull`, `setRaw`, `append`,
+`appendInline`, `insertBefore`, `insertBeforeInline`, `remove`, `clear`
+
+- `CommandBuilder.createNodeAsset(node, listParent)` - Creates a `.ui` asset for node insertion; default implementation
+  uses `getDynamicAssetForNode`, overridable for testing
 
 ### GenericNode
 **File**: `serializer/GenericNode.kt`
 
 Intermediate representation: name, id, sorted properties map, children list. Bridges typed nodes to serialization.
+
+**Inner types:**
+
+- `Identifier(value)` - Unquoted values (enums, colors, variables, translations)
+- `MessageValue(message, serialized)` - Wraps a `Message` with its serialized form; equality is based on the serialized
+  value, preserving the original `Message` for the diff processor to pass to `CommandBuilder`
 
 ---
 
@@ -226,6 +244,8 @@ Sound definitions: `buttonsLight`, `buttonsCancel`, `dropdownBox`, `tick`, `unti
 
 ## Utilities
 
+- **Message** (`util/message.kt`): `String.toMessage()` → `Message.raw(this)`, `String.translated()` →
+  `Message.translation(this)` — convenience extensions for creating `Message` values used by text properties
 - **StandardColors** (`util/StandardColors.kt`): Dynamic color palette with 23 families, `step(0-1000)` interpolation
 - **CustomHudHelper** (`util/CustomHudHelper.kt`): Reflection-based interaction with Hytale's `CustomUIHud`
 - **DelegatedChannel** (`util/DelegatedChannel.kt`): Netty channel wrapper for monitoring outgoing HUD commands

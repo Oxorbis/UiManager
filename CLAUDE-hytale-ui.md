@@ -51,10 +51,29 @@ Label { Style: $C.@DefaultLabelStyle; }
 );
 ```
 
-### Server-Side String Interpolation
+### Text Values
+
+Text properties (`Text`, `TextSpans`, `TooltipText`, `TooltipTextSpans`) use the `Message` type from the Hytale server
+API.
+
+**In the DSL:**
+
+```kotlin
+// Raw text — serialized as quoted string: Text: "Hello World";
+label { text = "Hello World".toMessage() }
+
+// Translated text — serialized as unquoted identifier: Text: %server.customUI.title;
+label { text = "server.customUI.title".translated() }
 ```
-Text: %server.customUI.title;
+
+**In .ui file format:**
 ```
+Text: "Hello World";              // Raw text (quoted)
+Text: %server.customUI.title;     // Server-side translation key (unquoted, % prefix)
+```
+
+**In diff updates:** `Message` objects are passed directly to `UICommandBuilder.set(path, Message)` for proper protocol
+encoding.
 
 ---
 
@@ -173,7 +192,8 @@ Visible: true;
 ```
 Disabled: false;
 HitTestVisible: true;
-TooltipText: "Hover text";
+TooltipText: "Hover text";       // Raw text (Message type in DSL: "Hover text".toMessage())
+TooltipText: %server.tooltip;    // Translated text (Message type in DSL: "server.tooltip".translated())
 IsReadOnly: false;
 ```
 

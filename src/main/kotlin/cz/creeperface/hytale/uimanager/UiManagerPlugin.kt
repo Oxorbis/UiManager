@@ -35,6 +35,7 @@ import cz.creeperface.hytale.uimanager.templates.decoratedContainer
 import cz.creeperface.hytale.uimanager.type.*
 import cz.creeperface.hytale.uimanager.util.DelegatedChannel
 import cz.creeperface.hytale.uimanager.util.ref
+import cz.creeperface.hytale.uimanager.util.toMessage
 import io.netty.channel.Channel
 import org.bson.BsonDocument
 import java.time.LocalDate
@@ -46,7 +47,7 @@ import kotlin.time.Duration.Companion.milliseconds
 class UiManagerPlugin(init: JavaPluginInit) : JavaPlugin(init) {
 
     val bwData = BwData(
-        LocalDateTime.now().format(DateTimeFormatter.ofPattern("mm:ss"))
+        LocalDateTime.now().format(DateTimeFormatter.ofPattern("mm:ss")).toMessage()
     )
 
     override fun setup() {
@@ -92,7 +93,7 @@ class UiManagerPlugin(init: JavaPluginInit) : JavaPlugin(init) {
 
                     title {
                         defaultTitle {
-                            text = "Page title"
+                            text = "Page title".toMessage()
                         }
                     }
 
@@ -135,7 +136,7 @@ class UiManagerPlugin(init: JavaPluginInit) : JavaPlugin(init) {
                                     icon = patchStyle {
                                         texturePath = CommonTemplate.UI_ROOT + "Common/RecipesIcon.png"
                                     }
-                                    tooltipText = "Tab0"
+                                    tooltipText = "Tab0".toMessage()
                                 }
 
                                 tabButton {
@@ -143,7 +144,7 @@ class UiManagerPlugin(init: JavaPluginInit) : JavaPlugin(init) {
                                     icon = patchStyle {
                                         texturePath = CommonTemplate.UI_ROOT + "Common/RecipesIcon.png"
                                     }
-                                    tooltipText = "Tab1"
+                                    tooltipText = "Tab1".toMessage()
                                 }
 
                                 tabButton {
@@ -151,7 +152,7 @@ class UiManagerPlugin(init: JavaPluginInit) : JavaPlugin(init) {
                                     icon = patchStyle {
                                         texturePath = CommonTemplate.UI_ROOT + "Common/RecipesIcon.png"
                                     }
-                                    tooltipText = "Tab2"
+                                    tooltipText = "Tab2".toMessage()
                                 }
 
 //                            for (i in 1..5) {
@@ -178,23 +179,23 @@ class UiManagerPlugin(init: JavaPluginInit) : JavaPlugin(init) {
 
                         defaultTitle {
 //                            text = playerRef?.username ?: ""
-                            text = ""
+                            text = "".toMessage()
                         }
 
                         if (playerRef != null) {
                             defaultTitle {
-                                text = "Logged in"
+                                text = "Logged in".toMessage()
                             }
                         }
 
                         group {
                             if (playerRef != null) {
                                 defaultTextButton {
-                                    text = "Logout"
+                                    text = "Logout".toMessage()
                                 }
                             } else {
                                 defaultTextButton {
-                                    text = "Login"
+                                    text = "Login".toMessage()
                                 }
                             }
                         }
@@ -252,7 +253,7 @@ class UiManagerPlugin(init: JavaPluginInit) : JavaPlugin(init) {
 
         HytaleServer.SCHEDULED_EXECUTOR.scheduleAtFixedRate(
             {
-                bwData.time = LocalDateTime.now().format(DateTimeFormatter.ofPattern("mm:ss"))
+                bwData.time = LocalDateTime.now().format(DateTimeFormatter.ofPattern("mm:ss")).toMessage()
 //                try {
 //                    Universe.get().players.forEach { playerRef ->
 //                        UiManager.update(playerRef, "bwtest", Unit)
@@ -500,7 +501,7 @@ class UiManagerPlugin(init: JavaPluginInit) : JavaPlugin(init) {
 
                     label {
                         id = "BoardTitle"
-                        text = "Custom HUD Test"
+                        text = "Custom HUD Test".toMessage()
 
                         anchor = UiAnchor(
                             width = 252,
@@ -537,20 +538,22 @@ class UiManagerPlugin(init: JavaPluginInit) : JavaPlugin(init) {
                     padding = UiPadding(top = 6, bottom = 4)
 
                     label {
-                        text = "Time: " + LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
+                        text =
+                            ("Time: " + LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))).toMessage()
                         anchor = UiAnchor(width = 260, height = 18)
                         style = UiLabelStyle(fontSize = 14.0, textColor = Color("#f6f8ff"))
                     }
 
                     label {
-                        text = "Time: " + LocalDateTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss"))
+                        text =
+                            ("Time: " + LocalDateTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss"))).toMessage()
                         anchor = UiAnchor(width = 260, height = 18)
                         style = UiLabelStyle(fontSize = 14.0, textColor = Color("#f6f8ff"))
                     }
 
                     for (i in 0..10) {
                         label {
-                            text = "Line $i"
+                            text = "Line $i".toMessage()
                             anchor = UiAnchor(width = 260, height = 18)
                             style = UiLabelStyle(fontSize = 14.0, textColor = Color("#f6f8ff"))
                         }

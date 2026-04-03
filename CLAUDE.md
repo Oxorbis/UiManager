@@ -49,7 +49,9 @@ Node classes, type classes, enum classes, builder functions, and event builder f
 - **DSL entry**: `customUi { ... }` creates a `UiPage` via `UiBuilder`
 - **Node IDs**: Auto-generated hierarchically by `IdGenerator` (e.g., `ParentGroupLabel1`)
 - **Properties**: All use `rebindable()` delegates for dirty tracking
-- **Property binding**: `::text.bind(data::time)` binds a UI property to an observable data property
+- **Text values**: Use `Message` type via `"text".toMessage()` (raw) or `"key".translated()` (server-side translation)
+- **Property binding**: `::text.bind(data::time)` binds a UI property to an observable data property (bound property
+  must match the target type, e.g. `Message` for text properties)
 - **Events**: `onActivate(field1::value, field2::value) { v1, v2 -> ... }`
 - **Forms**: `form<DataClass> { boundTextField(DataClass::field) { ... }; submitTextButton { ... } }`
 - **Templates**: `CommonTemplate` provides pre-styled helpers (`defaultTextButton`, `defaultTextField`, `pageOverlay`, etc.)
@@ -60,7 +62,10 @@ Node classes, type classes, enum classes, builder functions, and event builder f
 
 - Color format: `Color("#RRGGBB")` or `Color("#RRGGBB", alpha)` where alpha is 0.0-1.0
 - Texture paths: Relative to asset root, typically `../../Common/...` or `../../Textures/...`
-- Server-side string interpolation uses `%` prefix: `text = "%server.customUI.title"`
+- Text values use `Message` type: `text = "Hello".toMessage()` for raw text,
+  `text = "server.customUI.title".translated()` for server-side translations (serializes as `%server.customUI.title`)
+- Extension functions in `util/message.kt`: `String.toMessage()` → `Message.raw(this)`, `String.translated()` →
+  `Message.translation(this)`
 - Node names match Hytale element names (Group, Label, Button, TextButton, Panel, etc.)
 - `@ExcludeProperty` annotation excludes properties from serialization
 - `omitName = true` makes a node serialize without its type name (used for template merging)

@@ -1,11 +1,7 @@
 package cz.creeperface.hytale.uimanager.serializer
 
 import cz.creeperface.hytale.MyFormData
-import cz.creeperface.hytale.uimanager.builder.customUi
-import cz.creeperface.hytale.uimanager.builder.group
-import cz.creeperface.hytale.uimanager.builder.label
-import cz.creeperface.hytale.uimanager.builder.panel
-import cz.creeperface.hytale.uimanager.builder.sprite
+import cz.creeperface.hytale.uimanager.builder.*
 import cz.creeperface.hytale.uimanager.enum.LayoutMode
 import cz.creeperface.hytale.uimanager.special.boundTextField
 import cz.creeperface.hytale.uimanager.special.form
@@ -15,6 +11,7 @@ import cz.creeperface.hytale.uimanager.type.UiAnchor
 import cz.creeperface.hytale.uimanager.type.anchor
 import cz.creeperface.hytale.uimanager.type.labelStyle
 import cz.creeperface.hytale.uimanager.type.patchStyle
+import cz.creeperface.hytale.uimanager.util.toMessage
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import java.io.File
@@ -83,7 +80,7 @@ class UiSerializerTest {
                     layoutMode = LayoutMode.Center
 
                     label {
-                        text = "Complex UI Header"
+                        text = "Complex UI Header".toMessage()
                         anchor = anchor { full = 0 }
                         style = labelStyle {
                             fontSize = 24.0
@@ -127,7 +124,7 @@ class UiSerializerTest {
                                     right = 10
                                     vertical = 0
                                 }
-                                text = "Item Number $i Description"
+                                text = "Item Number $i Description".toMessage()
                             }
                         }
                     }
@@ -175,7 +172,7 @@ class UiSerializerTest {
 
                         submitTextButton {
                             anchor = UiAnchor(width = 70, height = 40)
-                            text = "Submit"
+                            text = "Submit".toMessage()
                         }
                     }
 

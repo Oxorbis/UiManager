@@ -11,10 +11,10 @@
           "Boolean"
         ],
         "TooltipText": [
-          "String"
+          "com.hypixel.hytale.server.core.Message"
         ],
         "TooltipTextSpans": [
-          "String"
+          "com.hypixel.hytale.server.core.Message"
         ],
         "TextTooltipStyle": [
           "TextTooltipStyle"
@@ -88,10 +88,10 @@
       "name": "Label",
       "properties": {
         "Text": [
-          "String"
+          "com.hypixel.hytale.server.core.Message"
         ],
         "TextSpans": [
-          "String"
+          "com.hypixel.hytale.server.core.Message"
         ],
         "Visible": [
           "Boolean"
@@ -100,10 +100,10 @@
           "Boolean"
         ],
         "TooltipText": [
-          "String"
+          "com.hypixel.hytale.server.core.Message"
         ],
         "TooltipTextSpans": [
-          "String"
+          "com.hypixel.hytale.server.core.Message"
         ],
         "TextTooltipStyle": [
           "TextTooltipStyle"
@@ -174,10 +174,10 @@
           "Boolean"
         ],
         "TooltipText": [
-          "String"
+          "com.hypixel.hytale.server.core.Message"
         ],
         "TooltipTextSpans": [
-          "String"
+          "com.hypixel.hytale.server.core.Message"
         ],
         "TextTooltipStyle": [
           "TextTooltipStyle"
@@ -248,10 +248,10 @@
           "Boolean"
         ],
         "TooltipText": [
-          "String"
+          "com.hypixel.hytale.server.core.Message"
         ],
         "TooltipTextSpans": [
-          "String"
+          "com.hypixel.hytale.server.core.Message"
         ],
         "TextTooltipStyle": [
           "TextTooltipStyle"
@@ -359,10 +359,10 @@
           "Boolean"
         ],
         "TooltipText": [
-          "String"
+          "com.hypixel.hytale.server.core.Message"
         ],
         "TooltipTextSpans": [
-          "String"
+          "com.hypixel.hytale.server.core.Message"
         ],
         "TextTooltipStyle": [
           "TextTooltipStyle"
@@ -429,10 +429,10 @@
           "Boolean"
         ],
         "TooltipText": [
-          "String"
+          "com.hypixel.hytale.server.core.Message"
         ],
         "TooltipTextSpans": [
-          "String"
+          "com.hypixel.hytale.server.core.Message"
         ],
         "TextTooltipStyle": [
           "TextTooltipStyle"
@@ -504,10 +504,10 @@
           "Boolean"
         ],
         "TooltipText": [
-          "String"
+          "com.hypixel.hytale.server.core.Message"
         ],
         "TooltipTextSpans": [
-          "String"
+          "com.hypixel.hytale.server.core.Message"
         ],
         "TextTooltipStyle": [
           "TextTooltipStyle"
@@ -595,10 +595,10 @@
           "Boolean"
         ],
         "TooltipText": [
-          "String"
+          "com.hypixel.hytale.server.core.Message"
         ],
         "TooltipTextSpans": [
-          "String"
+          "com.hypixel.hytale.server.core.Message"
         ],
         "TextTooltipStyle": [
           "TextTooltipStyle"
@@ -671,10 +671,10 @@
           "Boolean"
         ],
         "TooltipText": [
-          "String"
+          "com.hypixel.hytale.server.core.Message"
         ],
         "TooltipTextSpans": [
-          "String"
+          "com.hypixel.hytale.server.core.Message"
         ],
         "TextTooltipStyle": [
           "TextTooltipStyle"
@@ -756,10 +756,10 @@
           "Boolean"
         ],
         "TooltipText": [
-          "String"
+          "com.hypixel.hytale.server.core.Message"
         ],
         "TooltipTextSpans": [
-          "String"
+          "com.hypixel.hytale.server.core.Message"
         ],
         "TextTooltipStyle": [
           "TextTooltipStyle"
@@ -842,10 +842,10 @@
           "Boolean"
         ],
         "TooltipText": [
-          "String"
+          "com.hypixel.hytale.server.core.Message"
         ],
         "TooltipTextSpans": [
-          "String"
+          "com.hypixel.hytale.server.core.Message"
         ],
         "TextTooltipStyle": [
           "TextTooltipStyle"
@@ -958,10 +958,10 @@
       "hasChildren": true,
       "properties": {
         "Text": [
-          "String"
+          "com.hypixel.hytale.server.core.Message"
         ],
         "TextSpans": [
-          "String"
+          "com.hypixel.hytale.server.core.Message"
         ],
         "Visible": [
           "Boolean"
@@ -970,10 +970,10 @@
           "Boolean"
         ],
         "TooltipText": [
-          "String"
+          "com.hypixel.hytale.server.core.Message"
         ],
         "TooltipTextSpans": [
-          "String"
+          "com.hypixel.hytale.server.core.Message"
         ],
         "TextTooltipStyle": [
           "TextTooltipStyle"
@@ -1067,10 +1067,10 @@
           "Boolean"
         ],
         "TooltipText": [
-          "String"
+          "com.hypixel.hytale.server.core.Message"
         ],
         "TooltipTextSpans": [
-          "String"
+          "com.hypixel.hytale.server.core.Message"
         ],
         "TextTooltipStyle": [
           "TextTooltipStyle"
@@ -1176,10 +1176,10 @@
           "Boolean"
         ],
         "TooltipText": [
-          "String"
+          "com.hypixel.hytale.server.core.Message"
         ],
         "TooltipTextSpans": [
-          "String"
+          "com.hypixel.hytale.server.core.Message"
         ],
         "TextTooltipStyle": [
           "TextTooltipStyle"
@@ -1270,10 +1270,10 @@
           "Boolean"
         ],
         "TooltipText": [
-          "String"
+          "com.hypixel.hytale.server.core.Message"
         ],
         "TooltipTextSpans": [
-          "String"
+          "com.hypixel.hytale.server.core.Message"
         ],
         "TextTooltipStyle": [
           "TextTooltipStyle"
@@ -1343,10 +1343,10 @@
           "Boolean"
         ],
         "TooltipText": [
-          "String"
+          "com.hypixel.hytale.server.core.Message"
         ],
         "TooltipTextSpans": [
-          "String"
+          "com.hypixel.hytale.server.core.Message"
         ],
         "TextTooltipStyle": [
           "TextTooltipStyle"
@@ -1443,10 +1443,10 @@
           "Boolean"
         ],
         "TooltipText": [
-          "String"
+          "com.hypixel.hytale.server.core.Message"
         ],
         "TooltipTextSpans": [
-          "String"
+          "com.hypixel.hytale.server.core.Message"
         ],
         "TextTooltipStyle": [
           "TextTooltipStyle"
@@ -1531,10 +1531,10 @@
           "Boolean"
         ],
         "TooltipText": [
-          "String"
+          "com.hypixel.hytale.server.core.Message"
         ],
         "TooltipTextSpans": [
-          "String"
+          "com.hypixel.hytale.server.core.Message"
         ],
         "TextTooltipStyle": [
           "TextTooltipStyle"
@@ -1611,10 +1611,10 @@
           "Boolean"
         ],
         "TooltipText": [
-          "String"
+          "com.hypixel.hytale.server.core.Message"
         ],
         "TooltipTextSpans": [
-          "String"
+          "com.hypixel.hytale.server.core.Message"
         ],
         "TextTooltipStyle": [
           "TextTooltipStyle"
@@ -1675,7 +1675,7 @@
       "name": "TabButton",
       "properties": {
         "Text": [
-          "String"
+          "com.hypixel.hytale.server.core.Message"
         ],
         "LayoutMode": [
           "LayoutMode"
@@ -1687,10 +1687,10 @@
           "Boolean"
         ],
         "TooltipText": [
-          "String"
+          "com.hypixel.hytale.server.core.Message"
         ],
         "TooltipTextSpans": [
-          "String"
+          "com.hypixel.hytale.server.core.Message"
         ],
         "TextTooltipStyle": [
           "TextTooltipStyle"
@@ -1773,10 +1773,10 @@
           "Boolean"
         ],
         "TooltipText": [
-          "String"
+          "com.hypixel.hytale.server.core.Message"
         ],
         "TooltipTextSpans": [
-          "String"
+          "com.hypixel.hytale.server.core.Message"
         ],
         "TextTooltipStyle": [
           "TextTooltipStyle"
@@ -1841,10 +1841,10 @@
           "Boolean"
         ],
         "TooltipText": [
-          "String"
+          "com.hypixel.hytale.server.core.Message"
         ],
         "TooltipTextSpans": [
-          "String"
+          "com.hypixel.hytale.server.core.Message"
         ],
         "TextTooltipStyle": [
           "TextTooltipStyle"
@@ -1920,10 +1920,10 @@
           "Boolean"
         ],
         "TooltipText": [
-          "String"
+          "com.hypixel.hytale.server.core.Message"
         ],
         "TooltipTextSpans": [
-          "String"
+          "com.hypixel.hytale.server.core.Message"
         ],
         "TextTooltipStyle": [
           "TextTooltipStyle"
@@ -2001,10 +2001,10 @@
           "Boolean"
         ],
         "TooltipText": [
-          "String"
+          "com.hypixel.hytale.server.core.Message"
         ],
         "TooltipTextSpans": [
-          "String"
+          "com.hypixel.hytale.server.core.Message"
         ],
         "TextTooltipStyle": [
           "TextTooltipStyle"
@@ -2100,10 +2100,10 @@
           "Boolean"
         ],
         "TooltipText": [
-          "String"
+          "com.hypixel.hytale.server.core.Message"
         ],
         "TooltipTextSpans": [
-          "String"
+          "com.hypixel.hytale.server.core.Message"
         ],
         "TextTooltipStyle": [
           "TextTooltipStyle"
@@ -2171,10 +2171,10 @@
           "Boolean"
         ],
         "TooltipText": [
-          "String"
+          "com.hypixel.hytale.server.core.Message"
         ],
         "TooltipTextSpans": [
-          "String"
+          "com.hypixel.hytale.server.core.Message"
         ],
         "TextTooltipStyle": [
           "TextTooltipStyle"
@@ -2245,10 +2245,10 @@
           "Boolean"
         ],
         "TooltipText": [
-          "String"
+          "com.hypixel.hytale.server.core.Message"
         ],
         "TooltipTextSpans": [
-          "String"
+          "com.hypixel.hytale.server.core.Message"
         ],
         "TextTooltipStyle": [
           "TextTooltipStyle"
@@ -2309,7 +2309,7 @@
       "name": "DropdownEntry",
       "properties": {
         "Text": [
-          "String"
+          "com.hypixel.hytale.server.core.Message"
         ],
         "LayoutMode": [
           "LayoutMode"
@@ -2321,10 +2321,10 @@
           "Boolean"
         ],
         "TooltipText": [
-          "String"
+          "com.hypixel.hytale.server.core.Message"
         ],
         "TooltipTextSpans": [
-          "String"
+          "com.hypixel.hytale.server.core.Message"
         ],
         "TextTooltipStyle": [
           "TextTooltipStyle"
@@ -2427,10 +2427,10 @@
           "Boolean"
         ],
         "TooltipText": [
-          "String"
+          "com.hypixel.hytale.server.core.Message"
         ],
         "TooltipTextSpans": [
-          "String"
+          "com.hypixel.hytale.server.core.Message"
         ],
         "TextTooltipStyle": [
           "TextTooltipStyle"
@@ -2503,10 +2503,10 @@
           "Boolean"
         ],
         "TooltipText": [
-          "String"
+          "com.hypixel.hytale.server.core.Message"
         ],
         "TooltipTextSpans": [
-          "String"
+          "com.hypixel.hytale.server.core.Message"
         ],
         "TextTooltipStyle": [
           "TextTooltipStyle"
@@ -2586,10 +2586,10 @@
           "Boolean"
         ],
         "TooltipText": [
-          "String"
+          "com.hypixel.hytale.server.core.Message"
         ],
         "TooltipTextSpans": [
-          "String"
+          "com.hypixel.hytale.server.core.Message"
         ],
         "TextTooltipStyle": [
           "TextTooltipStyle"
@@ -2670,10 +2670,10 @@
           "Boolean"
         ],
         "TooltipText": [
-          "String"
+          "com.hypixel.hytale.server.core.Message"
         ],
         "TooltipTextSpans": [
-          "String"
+          "com.hypixel.hytale.server.core.Message"
         ],
         "TextTooltipStyle": [
           "TextTooltipStyle"
@@ -2751,10 +2751,10 @@
           "Boolean"
         ],
         "TooltipText": [
-          "String"
+          "com.hypixel.hytale.server.core.Message"
         ],
         "TooltipTextSpans": [
-          "String"
+          "com.hypixel.hytale.server.core.Message"
         ],
         "TextTooltipStyle": [
           "TextTooltipStyle"
@@ -2821,10 +2821,10 @@
           "Boolean"
         ],
         "TooltipText": [
-          "String"
+          "com.hypixel.hytale.server.core.Message"
         ],
         "TooltipTextSpans": [
-          "String"
+          "com.hypixel.hytale.server.core.Message"
         ],
         "TextTooltipStyle": [
           "TextTooltipStyle"
@@ -2923,10 +2923,10 @@
           "Boolean"
         ],
         "TooltipText": [
-          "String"
+          "com.hypixel.hytale.server.core.Message"
         ],
         "TooltipTextSpans": [
-          "String"
+          "com.hypixel.hytale.server.core.Message"
         ],
         "TextTooltipStyle": [
           "TextTooltipStyle"
@@ -3024,10 +3024,10 @@
           "Boolean"
         ],
         "TooltipText": [
-          "String"
+          "com.hypixel.hytale.server.core.Message"
         ],
         "TooltipTextSpans": [
-          "String"
+          "com.hypixel.hytale.server.core.Message"
         ],
         "TextTooltipStyle": [
           "TextTooltipStyle"
@@ -3111,10 +3111,10 @@
           "Boolean"
         ],
         "TooltipText": [
-          "String"
+          "com.hypixel.hytale.server.core.Message"
         ],
         "TooltipTextSpans": [
-          "String"
+          "com.hypixel.hytale.server.core.Message"
         ],
         "TextTooltipStyle": [
           "TextTooltipStyle"
@@ -3181,10 +3181,10 @@
           "Boolean"
         ],
         "TooltipText": [
-          "String"
+          "com.hypixel.hytale.server.core.Message"
         ],
         "TooltipTextSpans": [
-          "String"
+          "com.hypixel.hytale.server.core.Message"
         ],
         "TextTooltipStyle": [
           "TextTooltipStyle"
@@ -3267,10 +3267,10 @@
           "Boolean"
         ],
         "TooltipText": [
-          "String"
+          "com.hypixel.hytale.server.core.Message"
         ],
         "TooltipTextSpans": [
-          "String"
+          "com.hypixel.hytale.server.core.Message"
         ],
         "TextTooltipStyle": [
           "TextTooltipStyle"
@@ -3360,10 +3360,10 @@
           "Integer"
         ],
         "Text": [
-          "String"
+          "com.hypixel.hytale.server.core.Message"
         ],
         "TextSpans": [
-          "String"
+          "com.hypixel.hytale.server.core.Message"
         ],
         "Visible": [
           "Boolean"
@@ -3372,10 +3372,10 @@
           "Boolean"
         ],
         "TooltipText": [
-          "String"
+          "com.hypixel.hytale.server.core.Message"
         ],
         "TooltipTextSpans": [
-          "String"
+          "com.hypixel.hytale.server.core.Message"
         ],
         "TextTooltipStyle": [
           "TextTooltipStyle"
@@ -3446,10 +3446,10 @@
           "Boolean"
         ],
         "TooltipText": [
-          "String"
+          "com.hypixel.hytale.server.core.Message"
         ],
         "TooltipTextSpans": [
-          "String"
+          "com.hypixel.hytale.server.core.Message"
         ],
         "TextTooltipStyle": [
           "TextTooltipStyle"
@@ -3523,10 +3523,10 @@
           "Boolean"
         ],
         "TooltipText": [
-          "String"
+          "com.hypixel.hytale.server.core.Message"
         ],
         "TooltipTextSpans": [
-          "String"
+          "com.hypixel.hytale.server.core.Message"
         ],
         "TextTooltipStyle": [
           "TextTooltipStyle"
@@ -3590,10 +3590,10 @@
           "Boolean"
         ],
         "TooltipText": [
-          "String"
+          "com.hypixel.hytale.server.core.Message"
         ],
         "TooltipTextSpans": [
-          "String"
+          "com.hypixel.hytale.server.core.Message"
         ],
         "TextTooltipStyle": [
           "TextTooltipStyle"
@@ -3654,10 +3654,10 @@
       "name": "TextButton",
       "properties": {
         "Text": [
-          "String"
+          "com.hypixel.hytale.server.core.Message"
         ],
         "TextSpans": [
-          "String"
+          "com.hypixel.hytale.server.core.Message"
         ],
         "Visible": [
           "Boolean"
@@ -3666,10 +3666,10 @@
           "Boolean"
         ],
         "TooltipText": [
-          "String"
+          "com.hypixel.hytale.server.core.Message"
         ],
         "TooltipTextSpans": [
-          "String"
+          "com.hypixel.hytale.server.core.Message"
         ],
         "TextTooltipStyle": [
           "TextTooltipStyle"
@@ -3746,10 +3746,10 @@
           "Boolean"
         ],
         "TooltipText": [
-          "String"
+          "com.hypixel.hytale.server.core.Message"
         ],
         "TooltipTextSpans": [
-          "String"
+          "com.hypixel.hytale.server.core.Message"
         ],
         "TextTooltipStyle": [
           "TextTooltipStyle"
@@ -3816,10 +3816,10 @@
           "Boolean"
         ],
         "TooltipText": [
-          "String"
+          "com.hypixel.hytale.server.core.Message"
         ],
         "TooltipTextSpans": [
-          "String"
+          "com.hypixel.hytale.server.core.Message"
         ],
         "TextTooltipStyle": [
           "TextTooltipStyle"
@@ -4075,7 +4075,7 @@
           "LabelStyle"
         ],
         "Text": [
-          "String"
+          "com.hypixel.hytale.server.core.Message"
         ],
         "DefaultBackground": [
           "PatchStyle"
@@ -4617,7 +4617,7 @@
           "Anchor"
         ],
         "Text": [
-          "String"
+          "com.hypixel.hytale.server.core.Message"
         ],
         "TooltipText": [
           "String"
@@ -4704,7 +4704,7 @@
       "name": "LabelSpan",
       "properties": {
         "Text": [
-          "String"
+          "com.hypixel.hytale.server.core.Message"
         ],
         "IsUppercase": [
           "Boolean"

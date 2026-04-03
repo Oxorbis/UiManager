@@ -1,6 +1,7 @@
 package cz.creeperface.hytale.uimanager
 
 import com.hypixel.hytale.protocol.packets.interface_.CustomUIEventBindingType
+import com.hypixel.hytale.server.core.Message
 import cz.creeperface.hytale.uimanager.enum.MouseWheelScrollBehaviourType
 import cz.creeperface.hytale.uimanager.event.EventBinding
 import cz.creeperface.hytale.uimanager.event.EventContext
@@ -79,9 +80,9 @@ public interface UiNode {
 
   public var textTooltipStyle: UiTextTooltipStyle?
 
-  public var tooltipText: String?
+  public var tooltipText: Message?
 
-  public var tooltipTextSpans: String?
+  public var tooltipTextSpans: Message?
 
   public var visible: Boolean?
 
@@ -155,9 +156,9 @@ public abstract class BaseUiNode : UiNode, HasDelegates {
 
   override var textTooltipStyle: UiTextTooltipStyle? by rebindable(null)
 
-  override var tooltipText: String? by rebindable(null)
+  override var tooltipText: Message? by rebindable(null)
 
-  override var tooltipTextSpans: String? by rebindable(null)
+  override var tooltipTextSpans: Message? by rebindable(null)
 
   override var visible: Boolean? by rebindable(null)
 

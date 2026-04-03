@@ -89,6 +89,7 @@ java {
 
 tasks.test {
     useJUnitPlatform()
+    systemProperty("java.util.logging.manager", "com.hypixel.hytale.logger.backend.HytaleLogManager")
 }
 
 val compileKotlin: KotlinCompile by tasks
