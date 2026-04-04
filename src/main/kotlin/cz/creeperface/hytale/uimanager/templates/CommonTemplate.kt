@@ -2,12 +2,14 @@ package cz.creeperface.hytale.uimanager.templates
 
 import cz.creeperface.hytale.uimanager.ChildNodeBuilder
 import cz.creeperface.hytale.uimanager.Color
-import cz.creeperface.hytale.uimanager.UiNodeWithChildren
-import cz.creeperface.hytale.uimanager.UiPage
 import cz.creeperface.hytale.uimanager.builder.*
-import cz.creeperface.hytale.uimanager.enum.*
+import cz.creeperface.hytale.uimanager.enum.DropdownBoxAlign
+import cz.creeperface.hytale.uimanager.enum.InputFieldButtonSide
+import cz.creeperface.hytale.uimanager.enum.LabelAlignment
+import cz.creeperface.hytale.uimanager.enum.LayoutMode
 import cz.creeperface.hytale.uimanager.node.*
 import cz.creeperface.hytale.uimanager.type.*
+import cz.creeperface.hytale.uimanager.util.translated
 
 object CommonTemplate {
     
@@ -787,7 +789,7 @@ object CommonTemplate {
             anchor = anchor { height = 30; right = 10 }
             collapsedWidth = 34
             expandedWidth = 200
-            placeholderText = "server.customUI.searchPlaceholder"
+            placeholderText = "server.customUI.searchPlaceholder".translated()
             style = inputFieldStyle { fontSize = 16.0 }
             placeholderStyle = inputFieldStyle { textColor = Color("#3d5a85"); renderUppercase = true; fontSize = 14.0 }
             padding = padding { horizontal = 12; left = 34 }

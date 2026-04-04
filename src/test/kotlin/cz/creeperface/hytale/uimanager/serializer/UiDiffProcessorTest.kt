@@ -96,9 +96,7 @@ class UiDiffProcessorTest {
 
         val commands = builder.commands
         assertEquals(1, commands.size)
-        val textValue = commands["#btn.Text"]
-        assertTrue(textValue is Message, "Should be a Message, got ${textValue?.let { it::class.simpleName }}")
-        assertEquals("Changed", (textValue as Message).rawText)
+        assertEquals("Changed", commands["#btn.Text"], "Raw message should be passed as String")
     }
 
     @Test
@@ -627,9 +625,7 @@ class UiDiffProcessorTest {
         val serialized = builder.appends[0].second
         assertTrue(serialized.contains("#btn2"))
         assertFalse(serialized.contains("Text: \"A\""))
-        val textValue = builder.commands["#btn2.Text"]
-        assertTrue(textValue is Message, "Should be a Message")
-        assertEquals("A", (textValue as Message).rawText)
+        assertEquals("A", builder.commands["#btn2.Text"], "Raw message should be passed as String")
     }
 
     @Test

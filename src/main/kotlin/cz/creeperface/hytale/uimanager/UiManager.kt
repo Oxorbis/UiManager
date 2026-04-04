@@ -408,7 +408,7 @@ object UiManager {
                     pageId,
                     pageData.page,
                     lifetime,
-                    pageData.page,
+                    sentPage,
                     pageData,
                     eventBindings.toMutableMap(),
                     userData,

@@ -226,7 +226,7 @@ fun ChildNodeBuilder.createSampleForm() =
 
                     boundTextField(MyFormData::firstName) {
                         anchor = UiAnchor(width = 100, height = 40)
-                        placeholderText = "First Name"
+                        placeholderText = "First Name".toMessage()
                     }
                 }
 
@@ -236,7 +236,7 @@ fun ChildNodeBuilder.createSampleForm() =
 
                     boundTextField(MyFormData::lastName) {
                         anchor = UiAnchor(width = 100, height = 40)
-                        placeholderText = "Last Name"
+                        placeholderText = "Last Name".toMessage()
                     }
                 }
 

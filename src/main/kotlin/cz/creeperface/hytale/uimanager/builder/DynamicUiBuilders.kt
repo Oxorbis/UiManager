@@ -14,25 +14,23 @@ inline fun <T : ChildNodeBuilder> T.conditionalBlock(
     trueBuilder: T.() -> Unit,
     falseBuilder: T.() -> Unit
 ) {
+    val previousListener = this.nodeListener
+
     this.nodeListener = { node ->
+        previousListener?.invoke(node)
         node.visible = condition
-//        if (!condition) {
-//            node.visible = false
-//        }
     }
 
     trueBuilder()
 
     this.nodeListener = { node ->
+        previousListener?.invoke(node)
         node.visible = !condition
-//        if (condition) {
-//            node.visible = false
-//        }
     }
 
     falseBuilder()
 
-    this.nodeListener = null
+    this.nodeListener = previousListener
 }
 
 inline fun <T : ChildNodeBuilder, D> T.listBlock(
@@ -40,18 +38,18 @@ inline fun <T : ChildNodeBuilder, D> T.listBlock(
     maxItems: Int,
     builder: T.(D?, Int) -> Unit,
 ) {
+    val previousListener = this.nodeListener
+
     for (i in 0 until maxItems) {
         val item = data.getOrNull(i)
 
         this.nodeListener = { node ->
+            previousListener?.invoke(node)
             node.visible = item != null
-//            if (item == null) {
-//                node.visible = false
-//            }
         }
 
         builder(item, i)
-
-        this.nodeListener = null
     }
+
+    this.nodeListener = previousListener
 }

@@ -152,7 +152,7 @@ class UiSerializerTest {
 
                         boundTextField(MyFormData::firstName) {
                             anchor = UiAnchor(width = 100, height = 40)
-                            placeholderText = "First Name"
+                            placeholderText = "First Name".toMessage()
                         }
                     }
 
@@ -162,7 +162,7 @@ class UiSerializerTest {
 
                         boundTextField(MyFormData::lastName) {
                             anchor = UiAnchor(width = 100, height = 40)
-                            placeholderText = "Last Name"
+                            placeholderText = "Last Name".toMessage()
                         }
                     }
 

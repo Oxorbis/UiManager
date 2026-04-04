@@ -425,7 +425,14 @@ object UiDiffProcessor {
             is Int -> commandBuilder.set(path, value)
             is Float -> commandBuilder.set(path, value)
             is Double -> commandBuilder.set(path, value)
-            is GenericNode.MessageValue -> commandBuilder.set(path, value.message)
+            is GenericNode.MessageValue -> {
+                val rawText = value.message.rawText
+                if (rawText != null) {
+                    commandBuilder.set(path, rawText)
+                } else {
+                    commandBuilder.set(path, value.message)
+                }
+            }
             is GenericNode.Identifier -> {
                 val color = parseColor(value.value)
                 if (color != null) {

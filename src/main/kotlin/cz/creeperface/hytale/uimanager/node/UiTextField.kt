@@ -1,15 +1,12 @@
 package cz.creeperface.hytale.uimanager.node
 
+import com.hypixel.hytale.server.core.Message
 import cz.creeperface.hytale.uimanager.BaseUiNode
 import cz.creeperface.hytale.uimanager.ExcludeProperty
 import cz.creeperface.hytale.uimanager.UiNode
-import cz.creeperface.hytale.uimanager.`property`.rebindable
+import cz.creeperface.hytale.uimanager.property.rebindable
 import cz.creeperface.hytale.uimanager.type.UiInputFieldDecorationStyle
 import cz.creeperface.hytale.uimanager.type.UiInputFieldStyle
-import kotlin.Boolean
-import kotlin.Char
-import kotlin.Int
-import kotlin.String
 
 public open class UiTextField(
   @ExcludeProperty
@@ -22,7 +19,7 @@ public open class UiTextField(
   maxLength: Int? = null,
   passwordChar: Char? = null,
   placeholderStyle: UiInputFieldStyle? = null,
-  placeholderText: String? = null,
+  placeholderText: Message? = null,
   style: UiInputFieldStyle? = null,
   `value`: String? = null,
 ) : BaseUiNode() {
@@ -43,7 +40,7 @@ public open class UiTextField(
 
   public var placeholderStyle: UiInputFieldStyle? by rebindable(placeholderStyle)
 
-  public var placeholderText: String? by rebindable(placeholderText)
+    public var placeholderText: Message? by rebindable(placeholderText)
 
   public var style: UiInputFieldStyle? by rebindable(style)
 

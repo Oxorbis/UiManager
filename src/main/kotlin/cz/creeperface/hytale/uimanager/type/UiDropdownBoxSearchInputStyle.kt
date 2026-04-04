@@ -1,11 +1,9 @@
 package cz.creeperface.hytale.uimanager.type
 
+import com.hypixel.hytale.server.core.Message
 import cz.creeperface.hytale.uimanager.ExcludeProperty
 import cz.creeperface.hytale.uimanager.UiDsl
 import cz.creeperface.hytale.uimanager.UiType
-import kotlin.String
-import kotlin.Unit
-import kotlin.collections.MutableList
 
 @UiDsl
 public data class UiDropdownBoxSearchInputStyle(
@@ -15,7 +13,7 @@ public data class UiDropdownBoxSearchInputStyle(
   public var icon: UiInputFieldIcon? = null,
   public var padding: UiPadding? = null,
   public var placeholderStyle: UiInputFieldStyle? = null,
-  public var placeholderText: String? = null,
+  public var placeholderText: Message? = null,
   public var style: UiInputFieldStyle? = null,
 ) : UiType {
   @ExcludeProperty

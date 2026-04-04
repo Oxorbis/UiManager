@@ -236,7 +236,7 @@
           "String"
         ],
         "PlaceholderText": [
-          "String"
+          "com.hypixel.hytale.server.core.Message"
         ],
         "PasswordChar": [
           "Char"
@@ -902,7 +902,7 @@
           "Padding"
         ],
         "PlaceholderText": [
-          "String"
+          "com.hypixel.hytale.server.core.Message"
         ],
         "Anchor": [
           "Anchor"
@@ -1112,7 +1112,7 @@
           "Padding"
         ],
         "PlaceholderText": [
-          "String"
+          "com.hypixel.hytale.server.core.Message"
         ],
         "Anchor": [
           "Anchor"
@@ -1989,7 +1989,7 @@
           "String"
         ],
         "PlaceholderText": [
-          "String"
+          "com.hypixel.hytale.server.core.Message"
         ],
         "PasswordChar": [
           "Char"
@@ -4216,7 +4216,7 @@
           "Padding"
         ],
         "PlaceholderText": [
-          "String"
+          "com.hypixel.hytale.server.core.Message"
         ],
         "ClearButtonStyle": [
           "InputFieldButtonStyle"

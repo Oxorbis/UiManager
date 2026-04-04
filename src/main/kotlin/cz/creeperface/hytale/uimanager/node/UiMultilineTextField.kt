@@ -1,16 +1,14 @@
 package cz.creeperface.hytale.uimanager.node
 
+import com.hypixel.hytale.server.core.Message
 import cz.creeperface.hytale.uimanager.BaseUiNode
 import cz.creeperface.hytale.uimanager.ExcludeProperty
 import cz.creeperface.hytale.uimanager.UiNode
-import cz.creeperface.hytale.uimanager.`property`.rebindable
+import cz.creeperface.hytale.uimanager.property.rebindable
 import cz.creeperface.hytale.uimanager.type.UiInputFieldDecorationStyle
 import cz.creeperface.hytale.uimanager.type.UiInputFieldStyle
 import cz.creeperface.hytale.uimanager.type.UiPadding
 import cz.creeperface.hytale.uimanager.type.UiScrollbarStyle
-import kotlin.Boolean
-import kotlin.Int
-import kotlin.String
 
 public open class UiMultilineTextField(
   @ExcludeProperty
@@ -26,7 +24,7 @@ public open class UiMultilineTextField(
   maxLines: Int? = null,
   maxVisibleLines: Int? = null,
   placeholderStyle: UiInputFieldStyle? = null,
-  placeholderText: String? = null,
+  placeholderText: Message? = null,
   scrollbarStyle: UiScrollbarStyle? = null,
   style: UiInputFieldStyle? = null,
   `value`: String? = null,
@@ -54,7 +52,7 @@ public open class UiMultilineTextField(
 
   public var placeholderStyle: UiInputFieldStyle? by rebindable(placeholderStyle)
 
-  public var placeholderText: String? by rebindable(placeholderText)
+    public var placeholderText: Message? by rebindable(placeholderText)
 
   public var scrollbarStyle: UiScrollbarStyle? by rebindable(scrollbarStyle)
 

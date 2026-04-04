@@ -76,7 +76,7 @@ class UiListGroupDiffTest {
         val sets = builder.commands.filterIsInstance<MockCommandBuilder.Command.Set>()
         // We expect #list[0].Text
         assertTrue(
-            sets.any { it.path == "#list[0].Text" && it.value is Message && (it.value as Message).rawText == "Changed" },
+            sets.any { it.path == "#list[0].Text" && it.value == "Changed" },
             "Should have command for #list[0].Text. Commands: ${builder.commands}"
         )
     }
@@ -107,7 +107,7 @@ class UiListGroupDiffTest {
         // Text is a simple (non-Map) property, so it's stripped from the serialized node and set separately
         val sets = builder.commands.filterIsInstance<MockCommandBuilder.Command.Set>()
         assertTrue(
-            sets.any { it.value is Message && (it.value as Message).rawText == "B" },
+            sets.any { it.value == "B" },
             "Text 'B' should be set via a separate command. Commands: ${builder.commands}"
         )
     }
@@ -137,7 +137,7 @@ class UiListGroupDiffTest {
         // Without IDs, the diff matches by index: index 0 stays A, index 1 changes B→C, index 2 (B) is appended
         val sets = builder.commands.filterIsInstance<MockCommandBuilder.Command.Set>()
         assertTrue(
-            sets.any { it.path == "#list[1].Text" && it.value is Message && (it.value as Message).rawText == "C" },
+            sets.any { it.path == "#list[1].Text" && it.value == "C" },
             "Index 1 text should change to C. Commands: ${builder.commands}"
         )
         val appends = builder.commands.filterIsInstance<MockCommandBuilder.Command.AppendInline>()
