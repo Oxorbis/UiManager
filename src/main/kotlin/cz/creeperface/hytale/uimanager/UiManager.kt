@@ -105,7 +105,7 @@ object UiManager {
 
     private var closed = false
 
-    private val pageIdRegex = "^[a-zA-Z0-9_]+$".toRegex()
+    private val pageIdRegex = "^[a-zA-Z0-9]+$".toRegex()
     private val pageCounter = AtomicInteger(0)
 
     private val pages = mutableMapOf<String, PageData>()
@@ -127,7 +127,7 @@ object UiManager {
 
     fun registerStaticHud(pageId: String, pageFactory: ChildNodeBuilder.() -> Unit) {
         require(pageIdRegex.matches(pageId)) {
-            "Page ID does not match regex: $pageId"
+            "Page ID must be alphanumeric: '$pageId'"
         }
 
         require(!pages.containsKey(pageId)) {
@@ -157,7 +157,7 @@ object UiManager {
         pageFactory: ChildNodeBuilder.(PlayerRef?, T) -> Unit
     ) {
         require(pageIdRegex.matches(pageId)) {
-            "Page ID does not match regex: $pageId"
+            "Page ID must be alphanumeric: '$pageId'"
         }
 
         require(!pages.containsKey(pageId)) {
@@ -202,7 +202,7 @@ object UiManager {
         minUpdateFrequency: Duration = 500.milliseconds
     ) {
         require(pageIdRegex.matches(pageId)) {
-            "Page ID does not match regex: $pageId"
+            "Page ID must be alphanumeric: '$pageId'"
         }
 
         require(!pages.containsKey(pageId)) {
@@ -336,6 +336,11 @@ object UiManager {
 
         require(!openHuds.containsKey(pageId)) {
             "Page ID '$pageId' is already shown to player ${playerRef.username}"
+        }
+
+        commandBuilder.commands.forEach { command ->
+            HytaleLogger.getLogger().atInfo()
+                .log("HUD Command: ${command.type} - ${command.selector}, ${command.data}, ${command.text}")
         }
 
         val pageInstance = HudPageInstance(
@@ -575,6 +580,11 @@ object UiManager {
             sendPage,
             commandBuilder
         )
+
+        commandBuilder.commands.forEach { command ->
+            HytaleLogger.getLogger().atInfo()
+                .log("HUD Command: ${command.type} - ${command.selector}, ${command.data}, ${command.text}")
+        }
 
         pageInstance.lastSentPage = sendPage
 

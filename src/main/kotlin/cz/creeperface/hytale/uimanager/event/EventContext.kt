@@ -1,5 +1,6 @@
 package cz.creeperface.hytale.uimanager.event
 
+import com.google.gson.internal.LazilyParsedNumber
 import com.hypixel.hytale.logger.HytaleLogger
 import com.hypixel.hytale.server.core.universe.PlayerRef
 import cz.creeperface.hytale.uimanager.UiNode
@@ -27,6 +28,25 @@ class EventContext(
         }
         HytaleLogger.getLogger().atInfo().log("EventData: $eventData")
         HytaleLogger.getLogger().atInfo().log("PropertyPath: $propertyPath")
-        return eventData["@$propertyPath"] as T
+
+        val value = eventData["@$propertyPath"]
+
+        if (value is LazilyParsedNumber) {
+            val returnType = property.returnType.classifier
+            val converted = when (returnType) {
+                Int::class -> value.toInt()
+                Double::class -> value.toDouble()
+                Long::class -> value.toLong()
+                Float::class -> value.toFloat()
+                Short::class -> value.toShort()
+                Byte::class -> value.toByte()
+                else -> value
+            }
+            @Suppress("UNCHECKED_CAST")
+            return converted as T
+        }
+
+        @Suppress("UNCHECKED_CAST")
+        return value as T
     }
 }

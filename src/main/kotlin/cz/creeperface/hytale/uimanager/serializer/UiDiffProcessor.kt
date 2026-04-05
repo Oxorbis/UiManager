@@ -164,7 +164,16 @@ object UiDiffProcessor {
                     }
                 } else if (value is Map<*, *> && initialValue is Map<*, *>) {
                     @Suppress("UNCHECKED_CAST")
-                    compareObjects(initialValue as Map<String, Any?>, value as Map<String, Any?>, "$selector.$name", commandBuilder)
+                    if (name == "Anchor") {
+                        commandBuilder.setRaw("$selector.$name", convertColorsInMap(value as Map<String, Any?>))
+                    } else {
+                        compareObjects(
+                            initialValue as Map<String, Any?>,
+                            value as Map<String, Any?>,
+                            "$selector.$name",
+                            commandBuilder
+                        )
+                    }
                 } else if (value is Map<*, *> || initialValue is Map<*, *>) {
                     // One is object, another is not (e.g. PatchStyle flattened to color)
                     // Just set the whole property
@@ -478,18 +487,30 @@ object UiDiffProcessor {
     }
 
     private fun compareObjects(initial: Map<String, Any?>, current: Map<String, Any?>, path: String, commandBuilder: CommandBuilder) {
-        // If TexturePath changed, set the whole object at once
+        // TexturePath cannot be updated at runtime — skip it and warn
         if (current["TexturePath"] != initial["TexturePath"]) {
-            setCommand(commandBuilder, path, path.substringAfterLast('.'), convertColorsInMap(current))
-            return
+            HytaleLogger.getLogger().atWarning().log(
+                "TexturePath change detected at '$path' but cannot be updated at runtime. " +
+                        "Old: ${initial["TexturePath"]}, New: ${current["TexturePath"]}"
+            )
         }
 
         current.forEach { (name, value) ->
+            if (name == "TexturePath") return@forEach
             val initialValue = initial[name]
             if (value != initialValue) {
                 if (value is Map<*, *> && initialValue is Map<*, *>) {
                     @Suppress("UNCHECKED_CAST")
-                    compareObjects(initialValue as Map<String, Any?>, value as Map<String, Any?>, "$path.$name", commandBuilder)
+                    if (name == "Anchor") {
+                        commandBuilder.setRaw("$path.$name", convertColorsInMap(value as Map<String, Any?>))
+                    } else {
+                        compareObjects(
+                            initialValue as Map<String, Any?>,
+                            value as Map<String, Any?>,
+                            "$path.$name",
+                            commandBuilder
+                        )
+                    }
                 } else {
                     setCommand(commandBuilder, "$path.$name", name, value)
                 }
@@ -498,6 +519,7 @@ object UiDiffProcessor {
 
         // Detect removed keys
         initial.forEach { (name, _) ->
+            if (name == "TexturePath") return@forEach
             if (name !in current) {
                 setCommand(commandBuilder, "$path.$name", name, null)
             }

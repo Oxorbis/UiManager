@@ -28,9 +28,9 @@ data class GenericNode(
         override fun equals(other: Any?): Boolean {
             if (this === other) return true
             if (other !is MessageValue) return false
-            return serialized == other.serialized
+            return message.formattedMessage == other.message.formattedMessage
         }
 
-        override fun hashCode() = serialized.hashCode()
+        override fun hashCode() = message.formattedMessage.hashCode()
     }
 }

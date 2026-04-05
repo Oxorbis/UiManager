@@ -109,7 +109,7 @@ class UiDiffProcessorTest {
                 }
             }
         }
-        
+
         val current = customUi {
             textButton {
                 id = "btn"
@@ -118,16 +118,18 @@ class UiDiffProcessorTest {
                 }
             }
         }
-        
+
         val builder = MockCommandBuilder()
         UiDiffProcessor.generateUpdateCommands(initial, current, builder)
-        
+
         val commands = builder.commands
+        assertEquals(1, commands.size, "Should have exactly one command. Commands: $commands")
         assertTrue(
-            commands.containsKey("#btn.Anchor.Top"),
-            "Should contain #btn.Anchor.Top, not #btn.Anchor. Commands: ${commands.keys}"
+            commands.containsKey("#btn.Anchor"),
+            "Should set whole #btn.Anchor object. Commands: ${commands.keys}"
         )
-        assertEquals(20, (commands["#btn.Anchor.Top"] as? Number)?.toInt())
+        val anchorMap = commands["#btn.Anchor"] as Map<*, *>
+        assertEquals(20, (anchorMap["Top"] as? Number)?.toInt())
     }
 
     @Test
@@ -157,14 +159,9 @@ class UiDiffProcessorTest {
         assertEquals(1, commands.size, "Should have exactly one command. Commands: $commands")
         assertTrue(
             commands.containsKey("#node.Background.Color"),
-            "Path should be #node.Background.Color, not #node.Background. Commands: ${commands.keys}"
+            "Path should be #node.Background.Color. Commands: ${commands.keys}"
         )
-        val colorValue = commands["#node.Background.Color"]
-        assertTrue(
-            colorValue is String,
-            "Color should be sent as 8-char hex string, got ${colorValue?.let { it::class.simpleName }}: $colorValue"
-        )
-        assertEquals("#00FF00FF", colorValue)
+        assertEquals("#00FF00FF", commands["#node.Background.Color"])
     }
 
     @Test
@@ -196,14 +193,13 @@ class UiDiffProcessorTest {
             commands.containsKey("#node.Background.Color"),
             "Path should be #node.Background.Color. Commands: ${commands.keys}"
         )
-        val colorValue = commands["#node.Background.Color"]
-        assertEquals("#FA1528B3", colorValue, "Color should be #RRGGBBAA with alpha 0.7 -> 0xB3")
+        assertEquals("#FA1528B3", commands["#node.Background.Color"])
     }
 
     @Test
     fun testColorOnlyChangeWithTexturePath() {
         // When only Color changes but TexturePath stays the same,
-        // should set Background.Color individually, NOT the whole Background
+        // should set Background.Color individually
         val initial = customUi {
             group {
                 id = "node"
@@ -228,14 +224,10 @@ class UiDiffProcessorTest {
         UiDiffProcessor.generateUpdateCommands(initial, current, builder)
 
         val commands = builder.commands
-        assertEquals(1, commands.size, "Should have exactly one command for the changed color. Commands: $commands")
+        assertEquals(1, commands.size, "Should have exactly one command. Commands: $commands")
         assertTrue(
             commands.containsKey("#node.Background.Color"),
-            "Path should be #node.Background.Color, not #node.Background. Commands: ${commands.keys}"
-        )
-        assertFalse(
-            commands.containsKey("#node.Background"),
-            "Should NOT set the whole Background when only Color changed. Commands: ${commands.keys}"
+            "Path should be #node.Background.Color. Commands: ${commands.keys}"
         )
         assertEquals("#00FF00FF", commands["#node.Background.Color"], "Color value should be RGBA hex")
     }
@@ -277,7 +269,7 @@ class UiDiffProcessorTest {
 
     @Test
     fun testTexturePathOnlyChange() {
-        // When TexturePath changes, set the whole Background with colors converted
+        // TexturePath cannot be updated at runtime — should produce no commands
         val initial = customUi {
             group {
                 id = "node"
@@ -301,57 +293,15 @@ class UiDiffProcessorTest {
         val builder = MockCommandBuilder()
         UiDiffProcessor.generateUpdateCommands(initial, current, builder)
 
-        val commands = builder.commands
-        assertEquals(1, commands.size, "Should have exactly one command. Commands: $commands")
         assertTrue(
-            commands.containsKey("#node.Background"),
-            "Should set #node.Background as a whole. Commands: ${commands.keys}"
+            builder.commands.isEmpty(),
+            "TexturePath change should not produce any commands. Commands: ${builder.commands}"
         )
-        assertFalse(
-            commands.containsKey("#node.Background.TexturePath"),
-            "Should NOT set Background.TexturePath individually. Commands: ${commands.keys}"
-        )
-        val bgMap = commands["#node.Background"]
-        assertTrue(bgMap is Map<*, *>, "Value should be the full PatchStyle map")
-        bgMap as Map<*, *>
-        assertEquals("path/to/new", bgMap["TexturePath"])
-        assertEquals("#FF0000FF", bgMap["Color"], "Color inside the map should be converted to RGBA hex")
-    }
-
-    @Test
-    fun testTexturePathChangeWithAlphaColor() {
-        val initial = customUi {
-            group {
-                id = "node"
-                background = patchStyle {
-                    texturePath = "path/to/old"
-                    color = Color("#fa1528", 0.7)
-                }
-            }
-        }
-
-        val current = customUi {
-            group {
-                id = "node"
-                background = patchStyle {
-                    texturePath = "path/to/new"
-                    color = Color("#fa1528", 0.7)
-                }
-            }
-        }
-
-        val builder = MockCommandBuilder()
-        UiDiffProcessor.generateUpdateCommands(initial, current, builder)
-
-        val commands = builder.commands
-        assertEquals(1, commands.size, "Should have exactly one command. Commands: $commands")
-        val bgMap = commands["#node.Background"] as Map<*, *>
-        assertEquals("#FA1528B3", bgMap["Color"], "Color with alpha should be converted to RGBA hex")
     }
 
     @Test
     fun testTexturePathAndColorBothChange() {
-        // When both change, should still set whole Background
+        // When both change, only the color update should be produced (TexturePath is skipped)
         val initial = customUi {
             group {
                 id = "node"
@@ -376,43 +326,9 @@ class UiDiffProcessorTest {
         UiDiffProcessor.generateUpdateCommands(initial, current, builder)
 
         val commands = builder.commands
-        assertEquals(1, commands.size, "Should have exactly one command. Commands: $commands")
-        val bgMap = commands["#node.Background"] as Map<*, *>
-        assertEquals("path/to/new", bgMap["TexturePath"])
-        assertEquals("#00FF0080", bgMap["Color"], "Color should be RGBA hex")
-    }
-
-    @Test
-    fun testNullPropertiesNotSerialized() {
-        // PatchStyle with only texturePath (color is null) should not include Color key
-        val initial = customUi {
-            group {
-                id = "node"
-                background = patchStyle {
-                    texturePath = "path/to/old"
-                }
-            }
-        }
-
-        val current = customUi {
-            group {
-                id = "node"
-                background = patchStyle {
-                    texturePath = "path/to/new"
-                }
-            }
-        }
-
-        val builder = MockCommandBuilder()
-        UiDiffProcessor.generateUpdateCommands(initial, current, builder)
-
-        val commands = builder.commands
-        assertEquals(1, commands.size, "Should have exactly one command. Commands: $commands")
-        val bgMap = commands["#node.Background"]
-        assertTrue(bgMap is Map<*, *>, "Value should be the full PatchStyle map")
-        bgMap as Map<*, *>
-        assertEquals("path/to/new", bgMap["TexturePath"])
-        assertFalse(bgMap.containsKey("Color"), "Null color should not be included in the map. Keys: ${bgMap.keys}")
+        assertEquals(1, commands.size, "Should have only the color command. Commands: $commands")
+        assertFalse(commands.containsKey("#node.Background.TexturePath"), "TexturePath should not be updated")
+        assertEquals("#00FF0080", commands["#node.Background.Color"], "Color should be RGBA hex")
     }
 
     @Test

@@ -6,7 +6,16 @@ inline fun <T : ChildNodeBuilder> T.conditionalBlock(
     condition: Boolean,
     builder: T.() -> Unit,
 ) {
-    conditionalBlock(condition, builder, builder)
+    val previousListener = this.nodeListener
+
+    this.nodeListener = { node ->
+        previousListener?.invoke(node)
+        node.visible = condition
+    }
+
+    builder()
+
+    this.nodeListener = previousListener
 }
 
 inline fun <T : ChildNodeBuilder> T.conditionalBlock(
