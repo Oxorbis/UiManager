@@ -12,6 +12,8 @@ class EventContext(
     private val response: EventResponse,
     private val eventData: Map<String, Any?>,
 ) {
+    val shiftHeld get() = response.shiftHeld
+
     fun <T> getData(property: KProperty0<T>): T {
         val receiver = property.boundReceiverOrNull()
 

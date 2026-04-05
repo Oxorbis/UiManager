@@ -4,9 +4,7 @@ import com.hypixel.hytale.protocol.packets.interface_.CustomUIEventBindingType
 import com.hypixel.hytale.server.core.Message
 import cz.creeperface.hytale.uimanager.Color
 import cz.creeperface.hytale.uimanager.UiNode
-import cz.creeperface.hytale.uimanager.builder.customUi
-import cz.creeperface.hytale.uimanager.builder.group
-import cz.creeperface.hytale.uimanager.builder.textButton
+import cz.creeperface.hytale.uimanager.builder.*
 import cz.creeperface.hytale.uimanager.type.anchor
 import cz.creeperface.hytale.uimanager.type.patchStyle
 import cz.creeperface.hytale.uimanager.util.toMessage
@@ -329,6 +327,186 @@ class UiDiffProcessorTest {
         assertEquals(1, commands.size, "Should have only the color command. Commands: $commands")
         assertFalse(commands.containsKey("#node.Background.TexturePath"), "TexturePath should not be updated")
         assertEquals("#00FF0080", commands["#node.Background.Color"], "Color should be RGBA hex")
+    }
+
+    // --- setRaw serialization safety tests ---
+
+    @Test
+    fun testNewPatchStyleMapValuesArePlainTypes() {
+        // When a PatchStyle is added (not present in initial), setRaw receives the Map.
+        // All values must be plain types (strings, numbers), not Identifier objects,
+        // otherwise GSON serializes Identifier as {"value":"..."} instead of the string.
+        val initial = customUi {
+            group {
+                id = "node"
+            }
+        }
+
+        val current = customUi {
+            group {
+                id = "node"
+                background = patchStyle {
+                    color = Color("#FF0000")
+                }
+            }
+        }
+
+        val builder = MockCommandBuilder()
+        UiDiffProcessor.generateUpdateCommands(initial, current, builder)
+
+        val bgValue = builder.commands["#node.Background"]
+        assertTrue(bgValue is Map<*, *>, "Background should be set as a Map via setRaw. Commands: ${builder.commands}")
+        val bgMap = bgValue as Map<*, *>
+        val colorValue = bgMap["Color"]
+        assertTrue(
+            colorValue is String,
+            "Color value in Map should be a plain String, not ${colorValue?.let { it::class.simpleName }}. Value: $colorValue"
+        )
+        assertEquals("#FF0000FF", colorValue)
+    }
+
+    @Test
+    fun testNewPatchStyleWithTextureMapValuesArePlainTypes() {
+        val initial = customUi {
+            group {
+                id = "node"
+            }
+        }
+
+        val current = customUi {
+            group {
+                id = "node"
+                background = patchStyle {
+                    color = Color("#00FF00", 0.5)
+                    texturePath = "path/to/texture"
+                }
+            }
+        }
+
+        val builder = MockCommandBuilder()
+        UiDiffProcessor.generateUpdateCommands(initial, current, builder)
+
+        val bgValue = builder.commands["#node.Background"]
+        assertTrue(bgValue is Map<*, *>, "Background should be set as a Map. Commands: ${builder.commands}")
+        val bgMap = bgValue as Map<*, *>
+
+        val colorValue = bgMap["Color"]
+        assertTrue(
+            colorValue is String,
+            "Color should be a plain String, not ${colorValue?.let { it::class.simpleName }}"
+        )
+        assertEquals("#00FF0080", colorValue)
+
+        val texturePath = bgMap["TexturePath"]
+        assertTrue(
+            texturePath is String,
+            "TexturePath should be a plain String, not ${texturePath?.let { it::class.simpleName }}"
+        )
+        assertEquals("path/to/texture", texturePath)
+    }
+
+    // --- Editable input value tests ---
+
+    @Test
+    fun testEditableInputValueAlwaysSent() {
+        // TextField value should always be sent even if unchanged,
+        // because the client may have modified it
+        val initial = customUi {
+            group {
+                id = "parent"
+                textField {
+                    id = "input"
+                    value = "Hello"
+                }
+            }
+        }
+
+        val current = initial.clone()
+
+        val builder = MockCommandBuilder()
+        UiDiffProcessor.generateUpdateCommands(initial, current, builder)
+
+        assertEquals(
+            1,
+            builder.commands.size,
+            "Should send the value even though it hasn't changed. Commands: ${builder.commands}"
+        )
+        assertEquals("Hello", builder.commands["#input.Value"])
+    }
+
+    @Test
+    fun testEditableInputValueSentOnChange() {
+        // When the value actually changes, it should be sent (via normal diff)
+        val initial = customUi {
+            group {
+                id = "parent"
+                textField {
+                    id = "input"
+                    value = "Hello"
+                }
+            }
+        }
+
+        val current = customUi {
+            group {
+                id = "parent"
+                textField {
+                    id = "input"
+                    value = "World"
+                }
+            }
+        }
+
+        val builder = MockCommandBuilder()
+        UiDiffProcessor.generateUpdateCommands(initial, current, builder)
+
+        assertEquals("World", builder.commands["#input.Value"])
+    }
+
+    @Test
+    fun testCheckBoxValueAlwaysSent() {
+        val initial = customUi {
+            group {
+                id = "parent"
+                checkBox {
+                    id = "cb"
+                    value = true
+                }
+            }
+        }
+
+        val current = initial.clone()
+
+        val builder = MockCommandBuilder()
+        UiDiffProcessor.generateUpdateCommands(initial, current, builder)
+
+        assertEquals(
+            1,
+            builder.commands.size,
+            "Should send checkbox value even if unchanged. Commands: ${builder.commands}"
+        )
+        assertEquals(true, builder.commands["#cb.Value"])
+    }
+
+    @Test
+    fun testNonEditableNodeDoesNotForceSend() {
+        // TextButton is not editable — unchanged values should NOT be sent
+        val initial = customUi {
+            textButton {
+                id = "btn"
+                text = "Same".toMessage()
+            }
+        }
+
+        val current = initial.clone()
+
+        val builder = MockCommandBuilder()
+        UiDiffProcessor.generateUpdateCommands(initial, current, builder)
+
+        assertTrue(
+            builder.commands.isEmpty(),
+            "Non-editable node should not force-send values. Commands: ${builder.commands}"
+        )
     }
 
     @Test

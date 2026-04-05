@@ -25,6 +25,28 @@ object UiDiffProcessor {
 
     private val gson = Gson()
 
+    /**
+     * Node types with editable values that must always be sent to the client,
+     * because the client may have modified them without the server knowing.
+     * Maps node type name to the PascalCase property name holding the editable value.
+     */
+    private val EDITABLE_VALUE_PROPERTIES = mapOf(
+        "TextField" to "Value",
+        "CompactTextField" to "Value",
+        "MultilineTextField" to "Value",
+        "NumberField" to "Value",
+        "CheckBox" to "Value",
+        "LabeledCheckBox" to "Value",
+        "ToggleButton" to "IsChecked",
+        "ColorPicker" to "Value",
+        "ColorPickerDropdownBox" to "Color",
+        "DropdownBox" to "Value",
+        "Slider" to "Value",
+        "FloatSlider" to "Value",
+        "SliderNumberField" to "Value",
+        "FloatSliderNumberField" to "Value",
+    )
+
     private var dynamicPageAssetCounter = 0
     private val dynamicPageAssets = mutableMapOf<String, String>()
 
@@ -188,6 +210,16 @@ object UiDiffProcessor {
         initial.properties.forEach { (name, _) ->
             if (name !in current.properties) {
                 setCommand(commandBuilder, "$selector.$name", name, null)
+            }
+        }
+
+        // Always send editable input values — the client may have modified them
+        val editableProperty = EDITABLE_VALUE_PROPERTIES[current.name]
+        if (editableProperty != null) {
+            val value = current.properties[editableProperty]
+            val initialValue = initial.properties[editableProperty]
+            if (value != null && value == initialValue) {
+                setCommand(commandBuilder, "$selector.$editableProperty", editableProperty, value)
             }
         }
 
@@ -452,7 +484,8 @@ object UiDiffProcessor {
             }
             else -> {
                 if (value is Map<*, *>) {
-                    commandBuilder.setRaw(path, value)
+                    @Suppress("UNCHECKED_CAST")
+                    commandBuilder.setRaw(path, convertColorsInMap(value as Map<String, Any?>))
                 } else {
                     commandBuilder.set(path, UiSerializer.formatValue(name, value, quoteStrings = false))
                 }
@@ -473,7 +506,7 @@ object UiDiffProcessor {
             when (value) {
                 is GenericNode.Identifier -> {
                     val color = parseColor(value.value)
-                    if (color != null) color.toRgbaHex() else value
+                    if (color != null) color.toRgbaHex() else value.value
                 }
 
                 is Map<*, *> -> {
