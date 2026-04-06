@@ -663,7 +663,8 @@ Available families: `slate`, `gray`, `zinc`, `neutral`, `stone`, `red`, `orange`
 ## MultipleHUD Compatibility
 
 UiManager conflicts with MultipleHUD — both plugins cannot be installed at the same time. UiManager ships with
-a [MultipleHUD adapter]() that forwards MultipleHUD API calls to UiManager internally, so plugins that depend on
+a [MultipleHUD adapter](https://github.com/Creeperface01/MultipleHUDAdapter) that forwards MultipleHUD API calls to
+UiManager internally, so plugins that depend on
 MultipleHUD continue to work without changes. Install the adapter instead of MultipleHUD itself.
 
 ## Build & Test

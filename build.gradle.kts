@@ -21,8 +21,15 @@ dependencies {
     compileOnly(libs)
     testImplementation(libs)
 
-    val userHomeDir = file(System.getProperty("user.home"))
-    val hytaleServerJar = files("${userHomeDir.absolutePath}/Library/Application Support/Hytale/install/release/package/game/latest/Server/HytaleServer.jar")
+    // Hytale server JAR (resolved per OS)
+    val userHome = System.getProperty("user.home")
+    val osName = System.getProperty("os.name").lowercase()
+    val hytaleBase = when {
+        osName.contains("mac") -> "$userHome/Library/Application Support/Hytale"
+        osName.contains("win") -> "${System.getenv("APPDATA")}/Hytale"
+        else -> "$userHome/.local/share/Hytale"
+    }
+    val hytaleServerJar = files("$hytaleBase/install/release/package/game/latest/Server/HytaleServer.jar")
     compileOnly(hytaleServerJar)
     testImplementation(hytaleServerJar)
 
