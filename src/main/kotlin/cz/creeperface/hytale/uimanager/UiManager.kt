@@ -2,7 +2,6 @@
 
 package cz.creeperface.hytale.uimanager
 
-import com.google.gson.GsonBuilder
 import com.google.gson.JsonObject
 import com.google.gson.JsonParser
 import com.hypixel.hytale.component.Ref
@@ -29,9 +28,7 @@ import cz.creeperface.hytale.uimanager.serializer.UiDiffProcessor
 import cz.creeperface.hytale.uimanager.serializer.UiSerializer
 import cz.creeperface.hytale.uimanager.special.FormResponse
 import cz.creeperface.hytale.uimanager.special.UiForm
-import cz.creeperface.hytale.uimanager.util.CustomHudHelper
-import cz.creeperface.hytale.uimanager.util.getComponent
-import cz.creeperface.hytale.uimanager.util.player
+import cz.creeperface.hytale.uimanager.util.*
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.locks.ReentrantReadWriteLock
@@ -99,13 +96,21 @@ class PageInstance(
     val userData: Any
 )
 
+data class UpdateOptions(
+    val resendInputs: Boolean = true,
+)
+
 object UiManager {
+    private val logger = HytaleLogger.forEnclosingClass()
+
     const val ASSET_PATH = "UI/Custom/Pages/UiManager/"
     const val PAGE_PATH = "Pages/UiManager/"
 
     private var closed = false
 
     private val pageIdRegex = "^[a-zA-Z0-9]+$".toRegex()
+    private val identifierRegex = "[^a-zA-Z0-9]".toRegex()
+
     private val pageCounter = AtomicInteger(0)
 
     private val pages = mutableMapOf<String, PageData>()
@@ -122,8 +127,6 @@ object UiManager {
     private val pendingHudRemovals = ConcurrentHashMap<PlayerRef, MutableSet<String>>()
 
     internal val firstSendPlayers = ConcurrentHashMap.newKeySet<PlayerRef>()
-
-    private val GSON = GsonBuilder().create()
 
     fun registerStaticHud(pageId: String, pageFactory: ChildNodeBuilder.() -> Unit) {
         require(pageIdRegex.matches(pageId)) {
@@ -209,13 +212,6 @@ object UiManager {
             "Duplicated page ID: $pageId"
         }
 
-//        val page = customUi {
-//            group {
-//                id = pageId
-//                pageFactory(null, initialData)
-//            }
-//        }
-
         val internalFactory = { playerRef: PlayerRef?, ctx: T ->
             customUi {
                 group {
@@ -258,13 +254,21 @@ object UiManager {
         val forms = extractPageForms(page)
 
         val serializedPage = UiSerializer.serialize(page)
-        HytaleLogger.getLogger().atInfo().log("Serialized: $pageId")
-        HytaleLogger.getLogger().atInfo().log(serializedPage)
+
+        logger.debug {
+            "Serialized: $pageId"
+        }
+        logger.debug {
+            serializedPage
+        }
 
         val fileName = "Page" + pageCounter.getAndIncrement() /*+ "_"*/ + pageId + ".ui"
 
         val assetName = ASSET_PATH + fileName
-        HytaleLogger.getLogger().atInfo().log("Adding asset $assetName - file name: $fileName")
+
+        logger.debug {
+            "Adding asset $assetName - file name: $fileName"
+        }
         val asset = DynamicAsset(assetName, serializedPage.toByteArray(Charsets.UTF_8))
         CommonAssetModule.get().addCommonAsset("UiManager", asset)
 
@@ -305,7 +309,9 @@ object UiManager {
         )
         openHuds[pageId] = pageInstance
 
-        HytaleLogger.getLogger().atInfo().log("Showing dynamic HUD with ID '$pageId' to player ${playerRef.username}")
+        logger.debug {
+            "Showing dynamic HUD with ID '$pageId' to player ${playerRef.username}"
+        }
         scheduleHudUpdate(playerRef, pageInstance)
     }
 
@@ -338,9 +344,10 @@ object UiManager {
             "Page ID '$pageId' is already shown to player ${playerRef.username}"
         }
 
-        commandBuilder.commands.forEach { command ->
-            HytaleLogger.getLogger().atInfo()
-                .log("HUD Command: ${command.type} - ${command.selector}, ${command.data}, ${command.text}")
+        logger.inDebug {
+            commandBuilder.commands.forEach { command ->
+                it.log("HUD Command: ${command.type} - ${command.selector}, ${command.data}, ${command.text}")
+            }
         }
 
         val pageInstance = HudPageInstance(
@@ -403,8 +410,10 @@ object UiManager {
                     commandBuilder
                 )
 
-                commandBuilder.commands.forEach { command ->
-                    HytaleLogger.getLogger().atInfo().log("Command: ${command.type} - ${command.selector}, ${command.data}, ${command.text}")
+                logger.inDebug {
+                    commandBuilder.commands.forEach { command ->
+                        it.log("Command: ${command.type} - ${command.selector}, ${command.data}, ${command.text}")
+                    }
                 }
 
                 processPageForms(pageData, commandBuilder, eventBuilder, formData)
@@ -421,14 +430,17 @@ object UiManager {
             }
 
             override fun handleDataEvent(ref: Ref<EntityStore>, store: Store<EntityStore>, rawData: String) {
-                HytaleLogger.getLogger().atInfo().log("handleDataEvent: $rawData")
+                logger.debug {
+                    "handleDataEvent: $rawData"
+                }
+
                 val json = JsonParser.parseString(rawData)
 
                 if (json is JsonObject && json.has("FormIndex")) {
                     val response = try {
                         FormResponse.fromJson(json)
                     } catch (e: Exception) {
-                        HytaleLogger.getLogger().atInfo().withCause(e).log("Failed to parse form response")
+                        logger.atWarning().withCause(e).log("Failed to parse form response")
                         return
                     }
 
@@ -439,13 +451,18 @@ object UiManager {
                 val eventResponse = try {
                     EventResponse.fromJson(json)
                 } catch (e: Exception) {
-                    HytaleLogger.getLogger().atInfo().withCause(e).log("Failed to parse response")
+                    logger.atWarning().withCause(e).log("Failed to parse response")
                     return
                 }
-                HytaleLogger.getLogger().atInfo().log("response: $eventResponse")
 
-                eventResponse.values.forEach { string, any ->
-                    HytaleLogger.getLogger().atInfo().log("key: $string, value type: ${any?.javaClass?.simpleName}, value: $any")
+                logger.debug {
+                    "response: $eventResponse"
+                }
+
+                logger.inDebug {
+                    eventResponse.values.forEach { string, any ->
+                        it.log("key: $string, value type: ${any?.javaClass?.simpleName}, value: $any")
+                    }
                 }
 
                 handlePageEvent(playerRef, pageData, eventResponse)
@@ -478,7 +495,7 @@ object UiManager {
         val form = pageData.forms.getOrNull(response.formIndex)
 
         if (form == null) {
-            HytaleLogger.getLogger().atInfo().log("Form not found for index ${response.formIndex}")
+            logger.atWarning().log("Form not found for index ${response.formIndex}")
             return
         }
 
@@ -487,7 +504,7 @@ object UiManager {
         val submitHandler = castedForm.submitHandler
 
         if (submitHandler == null) {
-            HytaleLogger.getLogger().atInfo().log("Submit handler not found for form ${response.formIndex}")
+            logger.atWarning().log("Submit handler not found for form ${response.formIndex}")
             return
         }
 
@@ -526,7 +543,8 @@ object UiManager {
         pageId: String,
         userData: Any = Unit,
         clear: Boolean = false,
-        formData: List<Any?> = emptyList()
+        formData: List<Any?> = emptyList(),
+        options: UpdateOptions = UpdateOptions(),
     ) {
         val openPage = openPages[playerRef] ?: return
 
@@ -540,13 +558,15 @@ object UiManager {
         val commandBuilder = UICommandBuilder()
         val eventBuilder = UIEventBuilder()
 
-        UiDiffProcessor.generateUpdateCommands(openPage.lastSentPage, newPage, commandBuilder)
+        UiDiffProcessor.generateUpdateCommands(openPage.lastSentPage, newPage, commandBuilder, options.resendInputs)
         val eventBindings = addEventBindings(newPage, eventBuilder)
 
         processPageForms(openPage.pageData, commandBuilder, eventBuilder, formData)
 
-        commandBuilder.commands.forEach { command ->
-            HytaleLogger.getLogger().atInfo().log("Command: ${command.type} - ${command.selector}, ${command.data}, ${command.text}")
+        logger.inDebug {
+            commandBuilder.commands.forEach { command ->
+                it.log("Command: ${command.type} - ${command.selector}, ${command.data}, ${command.text}")
+            }
         }
 
         playerRef.packetHandler.writeNoCache(CustomPage(
@@ -581,9 +601,10 @@ object UiManager {
             commandBuilder
         )
 
-        commandBuilder.commands.forEach { command ->
-            HytaleLogger.getLogger().atInfo()
-                .log("HUD Command: ${command.type} - ${command.selector}, ${command.data}, ${command.text}")
+        logger.inDebug {
+            commandBuilder.commands.forEach { command ->
+                it.log("HUD Command: ${command.type} - ${command.selector}, ${command.data}, ${command.text}")
+            }
         }
 
         pageInstance.lastSentPage = sendPage
@@ -624,9 +645,6 @@ object UiManager {
 
     private fun processPlayerUpdates() {
         val scheduledUpdates = updateLock.write {
-//            this.scheduledUpdates.extract { playerRef, _ ->
-//                playerRef.worldUuid != null && subscribedPlayers.contains(playerRef)
-//            }
             val updates = this.scheduledUpdates.toMap()
             this.scheduledUpdates.clear()
             updates
@@ -758,12 +776,10 @@ object UiManager {
         val forms = mutableListOf<UiForm<*>>()
 
         fun processNode(node: UiNode): List<UiNode> {
-            HytaleLogger.getLogger().atInfo().log("Node ${node::class.simpleName}")
             val nodes: MutableList<UiNode> = mutableListOf()
 
             when (node) {
                 is UiForm<*> -> {
-                    HytaleLogger.getLogger().atInfo().log("Form children: ${node.children.size}")
                     node.children.forEach { child ->
                         nodes.addAll(processNode(child))
                     }
@@ -935,7 +951,9 @@ object UiManager {
     }
 
     internal fun addCustomUiHud(player: PlayerRef, identifier: String, hud: CustomUIHud) {
-        HytaleLogger.getLogger().atInfo().log("Adding custom hud $identifier for player ${player.username}")
+        val identifier = normalizeIdentifier(identifier)
+
+        logger.atInfo().log("Adding custom hud $identifier for player ${player.username}")
 
         val playerHuds = synchronized(customHuds) {
             customHuds
@@ -955,7 +973,9 @@ object UiManager {
     }
 
     internal fun removeCustomUiHud(player: PlayerRef, identifier: String) {
-        HytaleLogger.getLogger().atInfo().log("Removing custom hud $identifier from player ${player.username}")
+        val identifier = normalizeIdentifier(identifier)
+
+        logger.atInfo().log("Removing custom hud $identifier from player ${player.username}")
 
         synchronized(customHuds) {
             customHuds[player]?.remove(identifier)
@@ -965,4 +985,6 @@ object UiManager {
             scheduledUpdates.getOrPut(player) { mutableSetOf() }
         }
     }
+
+    private fun normalizeIdentifier(identifier: String) = identifier.replace(identifierRegex, "")
 }

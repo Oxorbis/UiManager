@@ -26,6 +26,8 @@ import cz.creeperface.hytale.uimanager.type.*
 import cz.creeperface.hytale.uimanager.util.toMessage
 import cz.creeperface.hytale.uimanager.util.translated
 
+private val logger = HytaleLogger.forEnclosingClass()
+
 class UiData(
     var buttonText: Message,
     var label: String,
@@ -54,7 +56,7 @@ val page = customUi {
             firstName::value,
             lastName::value
         ) { firstName, lastName ->
-            HytaleLogger.getLogger().info {
+            logger.info {
                 "Button activated with first name: $firstName and last name: $lastName"
             }
         }
@@ -217,7 +219,7 @@ fun ChildNodeBuilder.createSampleForm() =
 
             form<MyFormData> {
                 submitHandler = { playerRef, data ->
-                    HytaleLogger.getLogger().atInfo().log("Form submitted with data: $data")
+                    logger.atInfo().log("Form submitted with data: $data")
                 }
 
                 formGroup {

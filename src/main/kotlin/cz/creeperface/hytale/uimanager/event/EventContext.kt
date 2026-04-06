@@ -5,7 +5,10 @@ import com.hypixel.hytale.logger.HytaleLogger
 import com.hypixel.hytale.server.core.universe.PlayerRef
 import cz.creeperface.hytale.uimanager.UiNode
 import cz.creeperface.hytale.uimanager.util.boundReceiverOrNull
+import cz.creeperface.hytale.uimanager.util.debug
 import kotlin.reflect.KProperty0
+
+private val logger = HytaleLogger.forEnclosingClass()
 
 class EventContext(
     val playerRef: PlayerRef,
@@ -28,8 +31,13 @@ class EventContext(
         val propertyPath = receiver.id + "." + property.name.replaceFirstChar {
             it.uppercase()
         }
-        HytaleLogger.getLogger().atInfo().log("EventData: $eventData")
-        HytaleLogger.getLogger().atInfo().log("PropertyPath: $propertyPath")
+
+        logger.debug {
+            "EventData: $eventData"
+        }
+        logger.debug {
+            "PropertyPath: $propertyPath"
+        }
 
         val value = eventData["@$propertyPath"]
 

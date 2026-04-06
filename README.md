@@ -2,108 +2,21 @@
 
 A Kotlin server-side plugin for Hytale that provides a type-safe DSL for building, serializing, and dynamically updating custom UI. It handles page lifecycle, automatic dirty tracking with partial updates, event handling, form binding, and HUD management.
 
-## Getting Started
+## Features
 
-### Registering a Page
-
-Pages are full-screen interactive UI views shown to a player. Register them during plugin `setup()`:
-
-```kotlin
-// Simple page with no context data
-UiManager.registerPage("myPage", Unit) { playerRef, _ ->
-    group {
-        label { text = "Hello, ${playerRef?.username}" }
-    }
-}
-
-// Page with typed context data
-data class ShopData(val items: List<ShopItem>)
-
-UiManager.registerPage("shop", ShopData(emptyList())) { playerRef, data ->
-    group {
-        data.items.forEach { item ->
-            label { text = item.name }
-        }
-    }
-}
-```
-
-### Showing a Page to a Player
-
-```kotlin
-// Show a page (opens as a modal UI)
-UiManager.showPage(playerRef, "myPage", Unit)
-
-// Show with context data
-UiManager.showPage(playerRef, "shop", ShopData(myItems))
-
-// Show with specific lifetime
-UiManager.showPage(
-    playerRef, "shop", shopData,
-    lifetime = CustomPageLifetime.CanDismissOrCloseThroughInteraction
-)
-```
-
-### Updating an Open Page
-
-Send new data to an already-open page. Only the differences are transmitted to the client:
-
-```kotlin
-UiManager.updatePage(playerRef, "shop", ShopData(updatedItems))
-```
-
-## HUDs
-
-HUDs are persistent overlay elements that remain on screen. Three registration modes are available:
-
-### Static HUD
-
-Content that never changes after being shown:
-
-```kotlin
-UiManager.registerStaticHud("logo") {
-    group {
-        anchor = UiAnchor(right = 10, top = 10, width = 64, height = 64)
-        background = UiPatchStyle(texturePath = "../../Textures/logo.png")
-    }
-}
-
-// Show to a player
-UiManager.showStaticHud("logo", playerRef)
-```
-
-### Auto-Updating HUD
-
-Automatically detects property changes and sends updates at a configurable frequency:
-
-```kotlin
-UiManager.registerDynamicHudWithAutoUpdate(
-    "timer",
-    { playerRef ->
-        label {
-            ::text.bind(timerData::time) // binds to observable data
-        }
-    },
-    minUpdateFrequency = 500.milliseconds // default
-)
-
-UiManager.showDynamicHud("timer", playerRef)
-```
-
-### Manually Updated HUD
-
-You control when updates are sent:
-
-```kotlin
-UiManager.registerDynamicHudWithManualUpdate("stats", initialStats) { playerRef, stats ->
-    label { text = "Kills: ${stats.kills}" }
-}
-
-UiManager.showDynamicHud("stats", playerRef, playerStats)
-
-// Later, trigger an update with new data
-UiManager.update(playerRef, "stats", updatedStats)
-```
+- [**Type-Safe DSL**](#building-ui-with-the-dsl) - Compose UI trees using Kotlin DSL with auto-generated node classes,
+  properties, and builders
+- [**Pages**](#registering-a-page) - Full-screen interactive UI views with typed context data and configurable lifetime
+- [**HUDs**](#huds) - Persistent overlay elements with static, auto-updating, and manually updated modes
+- [**Automatic Dirty Tracking & Diff Updates**](#diff-based-updates) - Only changed properties are sent to the client,
+  minimizing network traffic
+- [**Data Binding**](#data-binding--dynamic-updates) - Bind UI properties to observable data for automatic UI refresh on
+  change
+- [**Events**](#events) - Type-safe event handlers with the ability to capture values from other nodes
+- [**Forms**](#forms) - Structured data collection with automatic field binding to data classes and submit handling
+- [**Templates**](#templates) - Pre-styled components matching Hytale's native UI look
+- [**Dynamic Nodes**](#dynamic-nodes) - Conditional visibility and fixed-size list rendering for dynamic content
+- [**Text & Translations**](#text--translations) - `Message` type for raw text and server-side translation keys
 
 ## Building UI with the DSL
 
@@ -122,7 +35,7 @@ val page = customUi {
         )
 
         label {
-            text = "Welcome"
+            text = "Welcome".toMessage()
             style = UiLabelStyle(
                 fontSize = 24.0,
                 textColor = Color("#ffffff"),
@@ -132,7 +45,7 @@ val page = customUi {
         }
 
         textButton {
-            text = "Click Me"
+            text = "Click Me".toMessage()
             anchor = UiAnchor(height = 44)
         }
     }
@@ -190,6 +103,23 @@ UiLabelStyle(
 )
 ```
 
+For Hytale's default/vanilla look, `CommonTemplate` provides pre-defined styles (see [Templates](#templates)):
+
+```kotlin
+// Use vanilla Hytale button styling
+defaultTextButton {
+    text = "Save".toMessage()
+}
+
+// Decorated container with Hytale-styled border and title
+decoratedContainer {
+    title { defaultTitle { text = "Settings".toMessage() } }
+    content {
+        // ...
+    }
+}
+```
+
 ### ID Generation
 
 Node IDs are generated automatically using a hierarchical scheme. The parent node's ID becomes a prefix:
@@ -207,6 +137,133 @@ group {
 
 You can override IDs manually with `id = "MyCustomId"`.
 
+## Text & Translations
+
+Text properties use the `Message` type. Two extension functions make it easy to create them:
+
+```kotlin
+// Raw text
+label { text = "Hello, world!".toMessage() }
+
+// Server-side translation key (serializes as %server.customUI.title)
+label { text = "server.customUI.title".translated() }
+```
+
+## Registering a Page
+
+Pages are full-screen interactive UI views shown to a player. Register them during plugin `setup()`:
+
+```kotlin
+// Simple page with no context data
+UiManager.registerPage("myPage", Unit) { playerRef, _ ->
+    group {
+        label { text = "Hello, ${playerRef?.username}".toMessage() }
+    }
+}
+
+// Page with typed context data
+data class ShopData(val items: List<ShopItem>)
+
+UiManager.registerPage("shop", ShopData(emptyList())) { playerRef, data ->
+    group {
+        data.items.forEach { item ->
+            label { text = item.name.toMessage() }
+        }
+    }
+}
+```
+
+### Showing a Page to a Player
+
+```kotlin
+// Show a page (opens as a modal UI)
+UiManager.showPage(playerRef, "myPage", Unit)
+
+// Show with context data
+UiManager.showPage(playerRef, "shop", ShopData(myItems))
+
+// Show with specific lifetime
+UiManager.showPage(
+    playerRef, "shop", shopData,
+    lifetime = CustomPageLifetime.CanDismissOrCloseThroughInteraction
+)
+```
+
+### Updating an Open Page
+
+Send new data to an already-open page. Only the differences are transmitted to the client:
+
+```kotlin
+UiManager.updatePage(playerRef, "shop", ShopData(updatedItems))
+```
+
+By default, every update resends all input field values (text fields, checkboxes, sliders, etc.) even if they haven't
+changed on the server side. This is because the client can modify input values locally (e.g., user typing in a text
+field), and the server needs to overwrite them to keep the UI in sync.
+
+If your page has no user-editable inputs, or you intentionally want to preserve the client's local input state, disable
+this with `UpdateOptions`:
+
+```kotlin
+UiManager.updatePage(
+    playerRef, "shop", ShopData(updatedItems),
+    options = UpdateOptions(resendInputs = false)
+)
+```
+
+## HUDs
+
+HUDs are persistent overlay elements that remain on screen. Three registration modes are available:
+
+### Static HUD
+
+Content that never changes after being shown:
+
+```kotlin
+UiManager.registerStaticHud("logo") {
+    group {
+        anchor = UiAnchor(right = 10, top = 10, width = 64, height = 64)
+        background = UiPatchStyle(texturePath = "../../Textures/logo.png")
+    }
+}
+
+// Show to a player
+UiManager.showStaticHud("logo", playerRef)
+```
+
+### Auto-Updating HUD
+
+Automatically detects property changes and sends updates at a configurable frequency:
+
+```kotlin
+UiManager.registerDynamicHudWithAutoUpdate(
+    "timer",
+    { playerRef ->
+        label {
+            ::text.bind(timerData::time) // binds to observable data
+        }
+    },
+    minUpdateFrequency = 500.milliseconds // default
+)
+
+UiManager.showDynamicHud("timer", playerRef)
+```
+
+### Manually Updated HUD
+
+You control when updates are sent:
+
+```kotlin
+UiManager.registerDynamicHudWithManualUpdate("stats", initialStats) { playerRef, stats ->
+    label { text = "Kills: ${stats.kills}".toMessage() }
+}
+
+UiManager.showDynamicHud("stats", playerRef, playerStats)
+
+// Later, trigger an update with new data
+UiManager.update(playerRef, "stats", updatedStats)
+```
+
 ## Data Binding & Dynamic Updates
 
 ### Observable Data
@@ -214,8 +271,8 @@ You can override IDs manually with `id = "MyCustomId"`.
 Create observable data classes that automatically trigger UI updates when properties change:
 
 ```kotlin
-class HudData(time: String, score: Int) : BaseObservable() {
-    var time: String by observable(time)
+class HudData(time: Message, score: Int) : BaseObservable() {
+    var time: Message by observable(time)
     var score: Int by observable(score)
 }
 ```
@@ -225,7 +282,7 @@ class HudData(time: String, score: Int) : BaseObservable() {
 Bind UI properties directly to data properties. When the data changes, the UI updates automatically:
 
 ```kotlin
-val data = HudData("00:00", 0)
+val data = HudData("00:00".toMessage(), 0)
 
 UiManager.registerDynamicHudWithAutoUpdate("gameHud", { _ ->
     group {
@@ -238,8 +295,8 @@ UiManager.registerDynamicHudWithAutoUpdate("gameHud", { _ ->
     }
 })
 
-// Later, update the data — UI refreshes automatically
-data.time = "05:30"
+// Later, update the data - UI refreshes automatically
+data.time = "05:30".toMessage()
 data.score = 42
 ```
 
@@ -249,21 +306,22 @@ All node properties use `rebindable()` delegates that track changes automaticall
 
 ## Events
 
-Attach event handlers to interactive nodes. Events can capture values from other nodes:
+Attach event handlers to interactive nodes. Events can capture current values from other nodes at the time the event
+fires:
 
 ```kotlin
 val firstName = textField {
     id = "FirstName"
-    placeholderText = "First name"
+    placeholderText = "First name".toMessage()
 }
 
 val lastName = textField {
     id = "LastName"
-    placeholderText = "Last name"
+    placeholderText = "Last name".toMessage()
 }
 
 textButton {
-    text = "Submit"
+    text = "Submit".toMessage()
 
     // Capture values from other fields when button is clicked
     onActivate(firstName::value, lastName::value) { first, last ->
@@ -281,23 +339,29 @@ Each node type has its own generated event extensions. Common events:
 - **Checkboxes**: `onValueChanged`
 - **Dropdowns**: `onDropdownToggled`
 
-### Event Overloads
+### Event Value Binding
 
-Events support capturing 0-5 property values from other nodes:
+Events support capturing 0-5 property values from other nodes. The values are read from the client at the moment the
+event fires, giving you up-to-date input state:
 
 ```kotlin
 // No captured values
 button.onActivate { ctx ->
-    // ctx.playerRef, ctx.response available
+    // ctx.playerRef, ctx.shiftHeld available
 }
 
 // Capture 1 value
 button.onActivate(textField::value) { value ->
-    // ...
+    // value contains the current text field content
 }
 
 // Capture 2 values
 button.onActivate(field1::value, field2::value) { v1, v2 ->
+    // v1, v2 contain current values at the time of click
+}
+
+// Up to 5 values
+button.onActivate(f1::value, f2::value, f3::value, f4::value, f5::value) { a, b, c, d, e ->
     // ...
 }
 ```
@@ -328,7 +392,7 @@ UiManager.registerPage("register", Unit) { _, _ ->
             formGroup {
                 anchor = UiAnchor(height = 40)
                 boundTextField(RegistrationData::username) {
-                    placeholderText = "Username"
+                    placeholderText = "Username".toMessage()
                     anchor = UiAnchor(width = 200, height = 38)
                 }
             }
@@ -336,7 +400,7 @@ UiManager.registerPage("register", Unit) { _, _ ->
             formGroup {
                 anchor = UiAnchor(height = 40)
                 boundTextField(RegistrationData::email) {
-                    placeholderText = "Email"
+                    placeholderText = "Email".toMessage()
                     anchor = UiAnchor(width = 200, height = 38)
                 }
             }
@@ -355,7 +419,7 @@ UiManager.registerPage("register", Unit) { _, _ ->
 
             formGroup {
                 submitTextButton {
-                    text = "Register"
+                    text = "Register".toMessage()
                     anchor = UiAnchor(width = 120, height = 44)
                 }
             }
@@ -406,7 +470,7 @@ pageOverlay {
         anchor = UiAnchor(width = 532)
 
         title {
-            defaultTitle { text = "Settings" }
+            defaultTitle { text = "Settings".toMessage() }
         }
 
         content {
@@ -414,11 +478,11 @@ pageOverlay {
             padding = UiPadding(full = 16)
 
             defaultTextField {
-                placeholderText = "Search..."
+                placeholderText = "Search...".toMessage()
             }
 
             defaultTextButton {
-                text = "Save"
+                text = "Save".toMessage()
             }
         }
     }
@@ -445,17 +509,17 @@ Structured layout with title/content sections:
 // Basic container
 container {
     title {
-        label { text = "Title" }
+        label { text = "Title".toMessage() }
     }
     content {
-        label { text = "Content goes here" }
+        label { text = "Content goes here".toMessage() }
     }
 }
 
 // Decorated container (with border decoration)
 decoratedContainer {
     title {
-        defaultTitle { text = "Decorated Title" }
+        defaultTitle { text = "Decorated Title".toMessage() }
     }
     content {
         // ...
@@ -473,24 +537,112 @@ decoratedContainer {
 - `topTabsStyle`, `headerTabsStyle`
 - `buttonSounds`
 
-## List Groups
+## Dynamic Nodes
 
-For dynamic lists where items can be added, removed, or reordered. The diff engine handles list changes efficiently:
+The UI tree structure is fixed at registration time — you cannot add or remove nodes when updating a page. The diff
+engine can only update **property values** of existing nodes. To handle dynamic content, use `conditionalBlock` and
+`listBlock` from `DynamicUiBuilders`, which pre-create all possible nodes and toggle their `visible` property based on
+the current data.
+
+### Conditional Visibility
+
+Show or hide nodes based on a condition:
 
 ```kotlin
-listGroup {
-    layoutMode = LayoutMode.LeftCenterWrap
+// Show a block only when condition is true
+conditionalBlock(team.isFull) {
+    label { text = "Full".toMessage() }
+}
 
-    data.items.forEach { item ->
-        group {
-            label { text = item.name }
-            label { text = "${item.price} gold" }
+// Show one block or the other based on a condition
+conditionalBlock(
+    team.isFull,
+    trueBuilder = {
+        label { text = "Full".toMessage() }
+    },
+    falseBuilder = {
+        defaultTextButton {
+            text = "Join".toMessage()
+            onActivate { /* ... */ }
+        }
+    }
+)
+```
+
+Both branches are always present in the UI tree. The builder sets `visible = condition` on nodes from the first block
+and `visible = !condition` on nodes from the second block.
+
+### Fixed-Size Lists
+
+Render a list of items with a pre-allocated maximum size. Slots beyond the actual data are hidden:
+
+```kotlin
+listBlock(data.teams, maxItems = 16) { team, index ->
+    group {
+        label { text = (team?.name ?: "").toMessage() }
+        label { text = "${team?.playerCount ?: 0} players".toMessage() }
+    }
+}
+```
+
+`listBlock` iterates `maxItems` times, always creating the full set of nodes. For each slot, the item is `null` if the
+index exceeds the data size, and the node's `visible` is set to `item != null`. On update, the existing nodes get new
+property values and visibility — no structural changes needed.
+
+### Full Example
+
+A team selection page combining both `listBlock` and `conditionalBlock`:
+
+```kotlin
+UiManager.registerPage("teamSelect", TeamSelectData()) { playerRef, data ->
+    pageOverlay {
+        decoratedContainer {
+            title { defaultTitle { text = "Select a Team".toMessage() } }
+
+            content {
+                layoutMode = LayoutMode.Top
+
+                listBlock(data.teams, maxItems = 16) { team, i ->
+                    group {
+                        anchor = UiAnchor(bottom = 6, height = 44)
+                        layoutMode = LayoutMode.Left
+
+                        label {
+                            text = (team?.name ?: "").toMessage()
+                        }
+
+                        // Show "Join" button or "Full" label depending on team state
+                        conditionalBlock(
+                            team?.isFull != true,
+                            {
+                                defaultTextButton {
+                                    text = "Join".toMessage()
+                                    onActivate { /* handle join */ }
+                                }
+                            },
+                            {
+                                label { text = "Full".toMessage() }
+                            }
+                        )
+                    }
+                }
+            }
         }
     }
 }
 ```
 
-When the page is updated with a different number of items, `UiDiffProcessor` generates minimal add/remove/reorder commands instead of replacing the entire list.
+## Diff-Based Updates
+
+UiManager uses a diff engine that compares the previous UI state with the current one and sends only the minimal set of
+commands needed:
+
+- **Property changes** - `set` commands (e.g., update text, visibility, color)
+- **Added children** - `append` / `insertBefore` commands
+- **Removed children** - `remove` commands
+- **List changes** - intelligent matching by node identity with add/remove/reorder
+
+This minimizes network traffic, especially for HUDs that update frequently.
 
 ## Color Utilities
 
@@ -508,26 +660,11 @@ val darkGreen = StandardColors.green.step(800)   // dark green
 
 Available families: `slate`, `gray`, `zinc`, `neutral`, `stone`, `red`, `orange`, `amber`, `yellow`, `lime`, `green`, `emerald`, `teal`, `cyan`, `sky`, `blue`, `indigo`, `violet`, `purple`, `fuchsia`, `pink`, `rose`
 
-## Diff-Based Updates
+## MultipleHUD Compatibility
 
-UiManager uses a diff engine that compares the previous UI state with the current one and sends only the minimal set of commands needed:
-
-- **Property changes** → `set` commands (e.g., update text, visibility, color)
-- **Added children** → `append` / `insertBefore` commands
-- **Removed children** → `remove` commands
-- **List changes** → intelligent matching by node identity with add/remove/reorder
-
-This minimizes network traffic, especially for HUDs that update frequently.
-
-## Server-Side String Interpolation
-
-Use the `%` prefix for strings resolved by the client:
-
-```kotlin
-label {
-    text = "%server.customUI.title"
-}
-```
+UiManager conflicts with MultipleHUD — both plugins cannot be installed at the same time. UiManager ships with
+a [MultipleHUD adapter]() that forwards MultipleHUD API calls to UiManager internally, so plugins that depend on
+MultipleHUD continue to work without changes. Install the adapter instead of MultipleHUD itself.
 
 ## Build & Test
 

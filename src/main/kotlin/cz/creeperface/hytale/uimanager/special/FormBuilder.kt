@@ -1,21 +1,16 @@
 package cz.creeperface.hytale.uimanager.special
 
-import com.hypixel.hytale.logger.HytaleLogger
 import com.hypixel.hytale.protocol.packets.interface_.CustomUIEventBindingType
 import cz.creeperface.hytale.uimanager.ChildNodeBuilder
+import cz.creeperface.hytale.uimanager.Color
 import cz.creeperface.hytale.uimanager.IdGenerator
 import cz.creeperface.hytale.uimanager.UiDsl
-import cz.creeperface.hytale.uimanager.UiNode
-import cz.creeperface.hytale.uimanager.UiPage
 import cz.creeperface.hytale.uimanager.builder.*
 import cz.creeperface.hytale.uimanager.node.*
-import cz.creeperface.hytale.uimanager.Color
-import cz.creeperface.hytale.uimanager.special.UiForm.FormSubmitter
 import cz.creeperface.hytale.uimanager.templates.CommonTemplate.defaultCheckBox
 import cz.creeperface.hytale.uimanager.templates.CommonTemplate.defaultNumberField
 import cz.creeperface.hytale.uimanager.templates.CommonTemplate.defaultTextButton
 import cz.creeperface.hytale.uimanager.templates.CommonTemplate.defaultTextField
-import kotlin.reflect.KMutableProperty0
 import kotlin.reflect.KMutableProperty1
 
 @UiDsl

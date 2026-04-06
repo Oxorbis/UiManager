@@ -17,12 +17,14 @@ import cz.creeperface.hytale.uimanager.UiManager.ASSET_PATH
 import cz.creeperface.hytale.uimanager.UiManager.PAGE_PATH
 import cz.creeperface.hytale.uimanager.UiPage
 import cz.creeperface.hytale.uimanager.asset.DynamicAsset
+import cz.creeperface.hytale.uimanager.util.debug
 import kotlin.reflect.full.declaredMemberProperties
 import kotlin.reflect.full.memberProperties
 import kotlin.reflect.jvm.isAccessible
 
 object UiDiffProcessor {
 
+    private val logger = HytaleLogger.forEnclosingClass()
     private val gson = Gson()
 
     /**
@@ -74,7 +76,12 @@ object UiDiffProcessor {
         }
     }
 
-    fun generateUpdateCommands(initial: UiPage, current: UiPage, commandBuilder: UICommandBuilder): List<GenericNode> {
+    fun generateUpdateCommands(
+        initial: UiPage,
+        current: UiPage,
+        commandBuilder: UICommandBuilder,
+        resendInputs: Boolean = true
+    ): List<GenericNode> {
         return generateUpdateCommands(initial, current, object : CommandBuilder {
             override fun set(path: String, value: Boolean) { commandBuilder.set(path, value) }
             override fun set(path: String, value: Int) { commandBuilder.set(path, value) }
@@ -107,8 +114,6 @@ object UiDiffProcessor {
                 val jsonWrapper = mapOf("0" to value)
 
                 val jsonValue = gson.toJson(jsonWrapper)
-//                HytaleLogger.getLogger().atInfo().log(value::class.simpleName)
-//                HytaleLogger.getLogger().atInfo().log("Raw set - $path - $jsonValue")
                 commandsMap.add(CustomUICommand(CustomUICommandType.Set, path, jsonValue, null))
             }
             override fun insertBeforeInline(selector: String, serializedNode: String) { commandBuilder.insertBeforeInline(selector, serializedNode) }
@@ -117,10 +122,15 @@ object UiDiffProcessor {
             }
             override fun remove(selector: String) { commandBuilder.remove(selector) }
             override fun clear(selector: String) { commandBuilder.clear(selector) }
-        })
+        }, resendInputs)
     }
 
-    fun generateUpdateCommands(initial: UiPage, current: UiPage, commandBuilder: CommandBuilder): List<GenericNode> {
+    fun generateUpdateCommands(
+        initial: UiPage,
+        current: UiPage,
+        commandBuilder: CommandBuilder,
+        resendInputs: Boolean = true
+    ): List<GenericNode> {
         val initialNodes = initial.nodes.map { UiSerializer.toGenericNode(it, flattenPatchStyle = false) }
         val currentNodes = current.nodes.map { UiSerializer.toGenericNode(it, flattenPatchStyle = false) }
 
@@ -136,7 +146,7 @@ object UiDiffProcessor {
             val currentNode = findMatchingNode(initialNode, index, currentNodes, matchedCurrentIndices)
             if (currentNode != null) {
                 val selector = getNodeSelector(currentNode, index, null)
-                addedNodes.addAll(compareNodes(initialNode, currentNode, selector, commandBuilder))
+                addedNodes.addAll(compareNodes(initialNode, currentNode, selector, commandBuilder, resendInputs))
             }
         }
 
@@ -170,12 +180,17 @@ object UiDiffProcessor {
         }
     }
 
-    private fun compareNodes(initial: GenericNode, current: GenericNode, selector: String, commandBuilder: CommandBuilder): List<GenericNode> {
+    private fun compareNodes(
+        initial: GenericNode,
+        current: GenericNode,
+        selector: String,
+        commandBuilder: CommandBuilder,
+        resendInputs: Boolean = true
+    ): List<GenericNode> {
         // Compare properties
         current.properties.forEach { (name, value) ->
             val initialValue = initial.properties[name]
             if (value != initialValue) {
-//                HytaleLogger.getLogger().atInfo().log("Comparing property $name for node $selector, value = $value, initialValue = $initialValue")
                 if (value is List<*> || initialValue is List<*>) {
                     // List properties (e.g. DropdownBox Entries) need original values from source
                     val sourceValue = getSourcePropertyValue(current.source, name)
@@ -214,19 +229,27 @@ object UiDiffProcessor {
         }
 
         // Always send editable input values — the client may have modified them
-        val editableProperty = EDITABLE_VALUE_PROPERTIES[current.name]
-        if (editableProperty != null) {
-            val value = current.properties[editableProperty]
-            val initialValue = initial.properties[editableProperty]
-            if (value != null && value == initialValue) {
-                setCommand(commandBuilder, "$selector.$editableProperty", editableProperty, value)
+        if (resendInputs) {
+            val editableProperty = EDITABLE_VALUE_PROPERTIES[current.name]
+            if (editableProperty != null) {
+                val value = current.properties[editableProperty]
+                val initialValue = initial.properties[editableProperty]
+                if (value != null && value == initialValue) {
+                    setCommand(commandBuilder, "$selector.$editableProperty", editableProperty, value)
+                }
             }
         }
 
-        return compareChildren(initial, current, selector, commandBuilder)
+        return compareChildren(initial, current, selector, commandBuilder, resendInputs)
     }
 
-    private fun compareChildren(initial: GenericNode, current: GenericNode, selector: String, commandBuilder: CommandBuilder): List<GenericNode> {
+    private fun compareChildren(
+        initial: GenericNode,
+        current: GenericNode,
+        selector: String,
+        commandBuilder: CommandBuilder,
+        resendInputs: Boolean = true
+    ): List<GenericNode> {
         val addedNodes = mutableListOf<GenericNode>()
         if (current.listNode) {
             val clientChildren = initial.children.toMutableList()
@@ -261,10 +284,18 @@ object UiDiffProcessor {
                 
                 if (nodesMatchIdentity(currentChild, clientChild)) {
                     // Perfect match! Compare properties (and potentially nested children)
-                    addedNodes.addAll(compareNodes(clientChild, currentChild, "$selector[$i]", commandBuilder))
+                    addedNodes.addAll(
+                        compareNodes(
+                            clientChild,
+                            currentChild,
+                            "$selector[$i]",
+                            commandBuilder,
+                            resendInputs
+                        )
+                    )
                     i++
                 } else {
-                    // Not a perfect match. 
+                    // Not a perfect match.
                     // Let's see if currentChild exists later in clientChildren
                     val nextMatchInClient = clientChildren.drop(i + 1).indexOfFirst { nodesMatchIdentity(currentChild, it) }
                     
@@ -289,7 +320,15 @@ object UiDiffProcessor {
                         } else {
                             // Neither is found later. Just a property change of the node at this position if names match.
                             if (currentChild.name == clientChild.name) {
-                                addedNodes.addAll(compareNodes(clientChild, currentChild, "$selector[$i]", commandBuilder))
+                                addedNodes.addAll(
+                                    compareNodes(
+                                        clientChild,
+                                        currentChild,
+                                        "$selector[$i]",
+                                        commandBuilder,
+                                        resendInputs
+                                    )
+                                )
                                 i++
                             } else {
                                 // Replacement: remove and insert
@@ -358,7 +397,15 @@ object UiDiffProcessor {
                 if (matchingInitial != null && nodesMatchIdentity(currentChild, matchingInitial)) {
                     // Match found, update it
                     val childSelector = getNodeSelector(currentChild, currentIdx, selector, false)
-                    addedNodes.addAll(compareNodes(matchingInitial, currentChild, childSelector, commandBuilder))
+                    addedNodes.addAll(
+                        compareNodes(
+                            matchingInitial,
+                            currentChild,
+                            childSelector,
+                            commandBuilder,
+                            resendInputs
+                        )
+                    )
                     initialIdx++
                 } else {
                     // Check if this currentChild is actually later in remainingInitial
@@ -459,7 +506,6 @@ object UiDiffProcessor {
 
 
     private fun setCommand(commandBuilder: CommandBuilder, path: String, name: String, value: Any?) {
-//        HytaleLogger.getLogger().atInfo().log("Command $path - $value")
         when (value) {
             null -> commandBuilder.setNull(path)
             is Boolean -> commandBuilder.set(path, value)
@@ -522,7 +568,7 @@ object UiDiffProcessor {
     private fun compareObjects(initial: Map<String, Any?>, current: Map<String, Any?>, path: String, commandBuilder: CommandBuilder) {
         // TexturePath cannot be updated at runtime — skip it and warn
         if (current["TexturePath"] != initial["TexturePath"]) {
-            HytaleLogger.getLogger().atWarning().log(
+            logger.atWarning().log(
                 "TexturePath change detected at '$path' but cannot be updated at runtime. " +
                         "Old: ${initial["TexturePath"]}, New: ${current["TexturePath"]}"
             )
@@ -567,10 +613,14 @@ object UiDiffProcessor {
         val fileName = "CustomPartialNode" + dynamicPageAssetCounter++ + ".ui"
 
         val assetName = ASSET_PATH + fileName
-        HytaleLogger.getLogger().atInfo().log("Adding partial node $assetName - file name: $fileName")
-        HytaleLogger.getLogger().atInfo().log("Content: $serialized")
+
+        logger.debug {
+            "Adding partial node $assetName - file name: $fileName"
+        }
+        logger.debug {
+            "Content: $serialized"
+        }
         val asset = DynamicAsset(assetName, serialized.toByteArray(Charsets.UTF_8))
-//        CommonAssetModule.get().addCommonAsset("UiManager", asset)
 
         val allBytes = asset.blob.get()
 
