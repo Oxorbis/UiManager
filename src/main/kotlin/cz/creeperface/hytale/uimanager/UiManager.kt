@@ -335,7 +335,8 @@ object UiManager {
         UiDiffProcessor.generateUpdateCommands(
             pageData.page,
             sentPage,
-            commandBuilder
+            commandBuilder,
+            initialShow = true
         )
 
         val openHuds = openHuds.computeIfAbsent(playerRef) { mutableMapOf() }
@@ -407,12 +408,19 @@ object UiManager {
                 UiDiffProcessor.generateUpdateCommands(
                     pageData.page,
                     sentPage,
-                    commandBuilder
+                    commandBuilder,
+                    initialShow = true
                 )
 
                 logger.inDebug {
                     commandBuilder.commands.forEach { command ->
                         it.log("Command: ${command.type} - ${command.selector}, ${command.data}, ${command.text}")
+                    }
+                }
+
+                logger.inDebug {
+                    eventBindings.forEach { i, binding ->
+                        it.log("Event binding: " + binding.type.name + " - ${binding.nodeId}")
                     }
                 }
 

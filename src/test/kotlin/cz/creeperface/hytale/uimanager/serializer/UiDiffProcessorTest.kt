@@ -860,4 +860,159 @@ class UiDiffProcessorTest {
         assertTrue(appendChildIdx != -1, "Should have appended to #parent. Ops: $ops")
         assertEquals(-1, setBackgroundIdx, "Should NOT have set #child.Background via command because it's a Map. Ops: $ops")
     }
+
+    // --- DropdownBox entries tests ---
+
+    private fun dropdownEntry(value: String, label: String): com.hypixel.hytale.server.core.ui.DropdownEntryInfo {
+        return com.hypixel.hytale.server.core.ui.DropdownEntryInfo(
+            com.hypixel.hytale.server.core.ui.LocalizableString.fromString(label),
+            value
+        )
+    }
+
+    @Test
+    fun testDropdownBoxEntriesExcludedFromSerialization() {
+        // Entries should NOT appear in the serialized .ui file
+        val page = customUi {
+            dropdownBox {
+                id = "dd"
+                entries = listOf(dropdownEntry("opt1", "Option 1"))
+            }
+        }
+
+        val serialized = UiSerializer.serialize(page)
+        assertFalse(
+            serialized.contains("Entries"),
+            "Entries should not appear in serialized .ui output. Got: $serialized"
+        )
+    }
+
+    @Test
+    fun testDropdownBoxEntriesSentViaDiff() {
+        // When initial has no entries but current does, diff should send the entries list
+        val initial = customUi {
+            dropdownBox {
+                id = "dd"
+            }
+        }
+
+        val current = initial.clone()
+        val entryList = listOf(dropdownEntry("opt1", "Option 1"))
+        (current.nodes[0] as cz.creeperface.hytale.uimanager.node.UiDropdownBox).entries = entryList
+
+        val builder = MockCommandBuilder()
+        UiDiffProcessor.generateUpdateCommands(initial, current, builder)
+
+        assertTrue(
+            builder.commands.containsKey("#dd.Entries"),
+            "Should have a command to set entries. Commands: ${builder.commands}"
+        )
+        val sentEntries = builder.commands["#dd.Entries"]
+        assertTrue(sentEntries is List<*>, "Entries should be sent as a List")
+        assertEquals(1, (sentEntries as List<*>).size)
+    }
+
+    @Test
+    fun testDropdownBoxEntriesUpdatedViaDiff() {
+        // When entries change between initial and current
+        val initial = customUi {
+            dropdownBox {
+                id = "dd"
+                entries = listOf(dropdownEntry("opt1", "Option 1"))
+            }
+        }
+
+        val current = initial.clone()
+        (current.nodes[0] as cz.creeperface.hytale.uimanager.node.UiDropdownBox).entries = listOf(
+            dropdownEntry("opt1", "Option 1"),
+            dropdownEntry("opt2", "Option 2"),
+        )
+
+        val builder = MockCommandBuilder()
+        UiDiffProcessor.generateUpdateCommands(initial, current, builder)
+
+        assertTrue(
+            builder.commands.containsKey("#dd.Entries"),
+            "Should have a command to update entries. Commands: ${builder.commands}"
+        )
+        val sentEntries = builder.commands["#dd.Entries"] as List<*>
+        assertEquals(2, sentEntries.size)
+    }
+
+    @Test
+    fun testDropdownBoxEntriesNoChangeNoDiff() {
+        // When entries are the same, no command should be generated
+        val initial = customUi {
+            dropdownBox {
+                id = "dd"
+                entries = listOf(dropdownEntry("opt1", "Option 1"))
+                value = "opt1"
+            }
+        }
+
+        val current = initial.clone()
+
+        val builder = MockCommandBuilder()
+        UiDiffProcessor.generateUpdateCommands(initial, current, builder)
+
+        assertFalse(
+            builder.commands.containsKey("#dd.Entries"),
+            "Should NOT have a command for unchanged entries. Commands: ${builder.commands}"
+        )
+        // Only the editable Value should be resent
+        assertEquals("opt1", builder.commands["#dd.Value"], "Should resend editable value")
+    }
+
+    @Test
+    fun testDropdownBoxEntriesAlwaysSentOnInitialShow() {
+        // On initial show (initialShow=true), entries should always be sent
+        // even if the template and instance have the same entries,
+        // because entries are not in the .ui file and the client doesn't have them.
+        val entries = listOf(dropdownEntry("opt1", "Option 1"))
+
+        val template = customUi {
+            dropdownBox {
+                id = "dd"
+                this.entries = entries
+            }
+        }
+
+        // Instance has same entries as template
+        val instance = template.clone()
+
+        val builder = MockCommandBuilder()
+        UiDiffProcessor.generateUpdateCommands(template, instance, builder, initialShow = true)
+
+        assertTrue(
+            builder.commands.containsKey("#dd.Entries"),
+            "Entries should be sent on initial show even if matching template. Commands: ${builder.commands}"
+        )
+        val sentEntries = builder.commands["#dd.Entries"]
+        assertTrue(sentEntries is List<*>, "Entries should be sent as a List")
+        assertEquals(1, (sentEntries as List<*>).size)
+    }
+
+    @Test
+    fun testDropdownBoxEntriesNotSentOnUpdateWhenUnchanged() {
+        // On page update (initialShow=false, default), entries should NOT be sent
+        // if they haven't changed between lastSentPage and current.
+        val entries = listOf(dropdownEntry("opt1", "Option 1"))
+
+        val lastSent = customUi {
+            dropdownBox {
+                id = "dd"
+                this.entries = entries
+            }
+        }
+
+        val current = lastSent.clone()
+
+        val builder = MockCommandBuilder()
+        UiDiffProcessor.generateUpdateCommands(lastSent, current, builder)
+
+        assertFalse(
+            builder.commands.containsKey("#dd.Entries"),
+            "Entries should NOT be sent on update when unchanged. Commands: ${builder.commands}"
+        )
+    }
 }

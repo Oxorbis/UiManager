@@ -1,18 +1,9 @@
 package cz.creeperface.hytale.uimanager.node
 
 import com.hypixel.hytale.server.core.ui.DropdownEntryInfo
-import cz.creeperface.hytale.uimanager.BaseUiNode
-import cz.creeperface.hytale.uimanager.ChildNodeBuilder
-import cz.creeperface.hytale.uimanager.ExcludeProperty
-import cz.creeperface.hytale.uimanager.UiNode
-import cz.creeperface.hytale.uimanager.UiNodeWithChildren
-import cz.creeperface.hytale.uimanager.`property`.rebindable
+import cz.creeperface.hytale.uimanager.*
+import cz.creeperface.hytale.uimanager.property.rebindable
 import cz.creeperface.hytale.uimanager.type.UiDropdownBoxStyle
-import kotlin.Boolean
-import kotlin.Int
-import kotlin.String
-import kotlin.collections.List
-import kotlin.collections.MutableList
 
 public open class UiDropdownBox(
   @ExcludeProperty
@@ -40,6 +31,7 @@ public open class UiDropdownBox(
 
   public var displayNonExistingValue: Boolean? by rebindable(displayNonExistingValue)
 
+    @DynamicProperty
   public var entries: List<DropdownEntryInfo?>? by rebindable(entries)
 
   public var forcedLabel: String? by rebindable(forcedLabel)

@@ -739,3 +739,14 @@ fun ChildNodeBuilder.createBarterPage(data: BarterData?) {
 
         defaultBackButton {}
 }
+
+fun ChildNodeBuilder.createDynamicDropdown() {
+
+    defaultTextField {
+
+    }
+
+    dropdownBox {
+
+    }
+}

@@ -27,6 +27,20 @@ public annotation class UiDsl
 @Retention(AnnotationRetention.RUNTIME)
 public annotation class ExcludeProperty
 
+/**
+ * Marks a property that should not be included in the serialized .ui file,
+ * but should still be tracked for diff processing and sent dynamically via update commands.
+ * Used for properties like DropdownBox.entries that can't be represented in .ui format.
+ */
+@Target(
+    AnnotationTarget.PROPERTY,
+    AnnotationTarget.FIELD,
+    AnnotationTarget.FUNCTION,
+    AnnotationTarget.PROPERTY_GETTER,
+)
+@Retention(AnnotationRetention.RUNTIME)
+public annotation class DynamicProperty
+
 public interface ChildNodeBuilder : UiNodeWithChildren {
   public fun addNode(node: UiNode)
 }

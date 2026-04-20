@@ -80,7 +80,8 @@ object UiDiffProcessor {
         initial: UiPage,
         current: UiPage,
         commandBuilder: UICommandBuilder,
-        resendInputs: Boolean = true
+        resendInputs: Boolean = true,
+        initialShow: Boolean = false
     ): List<GenericNode> {
         return generateUpdateCommands(initial, current, object : CommandBuilder {
             override fun set(path: String, value: Boolean) { commandBuilder.set(path, value) }
@@ -122,17 +123,28 @@ object UiDiffProcessor {
             }
             override fun remove(selector: String) { commandBuilder.remove(selector) }
             override fun clear(selector: String) { commandBuilder.clear(selector) }
-        }, resendInputs)
+        }, resendInputs, initialShow)
     }
 
     fun generateUpdateCommands(
         initial: UiPage,
         current: UiPage,
         commandBuilder: CommandBuilder,
-        resendInputs: Boolean = true
+        resendInputs: Boolean = true,
+        initialShow: Boolean = false
     ): List<GenericNode> {
-        val initialNodes = initial.nodes.map { UiSerializer.toGenericNode(it, flattenPatchStyle = false) }
-        val currentNodes = current.nodes.map { UiSerializer.toGenericNode(it, flattenPatchStyle = false) }
+        // On initial show, exclude dynamic properties from the initial side so they always
+        // appear as new in the diff — the client doesn't have them (not in the .ui file).
+        // On subsequent updates, include dynamic properties on both sides for normal diffing.
+        val initialNodes = initial.nodes.map {
+            UiSerializer.toGenericNode(
+                it,
+                flattenPatchStyle = false,
+                includeDynamic = !initialShow
+            )
+        }
+        val currentNodes =
+            current.nodes.map { UiSerializer.toGenericNode(it, flattenPatchStyle = false, includeDynamic = true) }
 
         // Root nodes comparison
         // Assuming the order of root nodes might change or they might be added/removed, 

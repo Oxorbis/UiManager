@@ -64,14 +64,19 @@ object UiSerializer {
         return result.distinct()
     }
 
-    private fun getAllProperties(clazz: KClass<*>): List<String> {
+    private fun getAllProperties(clazz: KClass<*>, includeDynamic: Boolean = false): List<String> {
         return clazz.memberProperties
             .filter { it.visibility == KVisibility.PUBLIC }
             .filter { prop ->
-                val hasAnnotation = prop.annotations.any { it.annotationClass == ExcludeProperty::class } ||
+                val hasExclude = prop.annotations.any { it.annotationClass == ExcludeProperty::class } ||
                         prop.getter.annotations.any { it.annotationClass == ExcludeProperty::class }
 
-                if (hasAnnotation) return@filter false
+                if (hasExclude) return@filter false
+
+                val hasDynamic = prop.annotations.any { it.annotationClass == DynamicProperty::class } ||
+                        prop.getter.annotations.any { it.annotationClass == DynamicProperty::class }
+
+                if (hasDynamic && !includeDynamic) return@filter false
 
                 // Check hierarchy for the annotation
                 val name = prop.name
@@ -79,8 +84,15 @@ object UiSerializer {
                     .mapNotNull { it.classifier as? KClass<*> }
                     .any { superClazz ->
                         superClazz.memberProperties.find { it.name == name }?.let { superProp ->
-                            superProp.annotations.any { it.annotationClass == ExcludeProperty::class } ||
+                            val superExclude =
+                                superProp.annotations.any { it.annotationClass == ExcludeProperty::class } ||
                                     superProp.getter.annotations.any { it.annotationClass == ExcludeProperty::class }
+                            if (superExclude) return@let true
+
+                            val superDynamic =
+                                superProp.annotations.any { it.annotationClass == DynamicProperty::class } ||
+                                        superProp.getter.annotations.any { it.annotationClass == DynamicProperty::class }
+                            superDynamic && !includeDynamic
                         } ?: false
                     }
 
@@ -90,7 +102,12 @@ object UiSerializer {
             .distinct()
     }
 
-    fun toGenericNode(uiNode: Any, templates: List<Any> = emptyList(), flattenPatchStyle: Boolean = true): GenericNode {
+    fun toGenericNode(
+        uiNode: Any,
+        templates: List<Any> = emptyList(),
+        flattenPatchStyle: Boolean = true,
+        includeDynamic: Boolean = false
+    ): GenericNode {
         val clazz = uiNode::class
         val nodeName = clazz.companionObjectInstance?.let { companion ->
             val nodeNameProp = companion::class.memberProperties.find { it.name == "NODE_NAME" }
@@ -110,7 +127,7 @@ object UiSerializer {
             uiNode
         )
 
-        val propsMap = serializeObject(uiNode, templates, flattenPatchStyle)
+        val propsMap = serializeObject(uiNode, templates, flattenPatchStyle, includeDynamic)
         propsMap.forEach { (name, value) ->
             if (value != null) genericNode.properties[name] = value
         }
@@ -146,13 +163,19 @@ object UiSerializer {
             val childrenForId = idToChildren[childId]!!
             val primary = childrenForId.first()
             val remaining = childrenForId.drop(1)
-            genericNode.children.add(toGenericNode(primary, remaining, flattenPatchStyle))
+            genericNode.children.add(toGenericNode(primary, remaining, flattenPatchStyle, includeDynamic))
         }
 
         // Handle children without IDs (only from primary node)
         val children = (uiNode as? UiNodeWithChildren)?.children ?: emptyList()
         children.filter { it.id == null }.forEach { child ->
-            genericNode.children.add(toGenericNode(child, flattenPatchStyle = flattenPatchStyle))
+            genericNode.children.add(
+                toGenericNode(
+                    child,
+                    flattenPatchStyle = flattenPatchStyle,
+                    includeDynamic = includeDynamic
+                )
+            )
         }
 
         return genericNode
@@ -199,13 +222,14 @@ object UiSerializer {
     private fun serializeObject(
         value: Any,
         templates: List<Any> = emptyList(),
-        flattenPatchStyle: Boolean = true
+        flattenPatchStyle: Boolean = true,
+        includeDynamic: Boolean = false
     ): Map<String, Any?> {
         val clazz = value::class
         val map = mutableMapOf<String, Any?>()
 
         val hierarchy = getHierarchy(value, templates)
-        val propNames = getAllProperties(clazz).sortedBy { it.replaceFirstChar { it.uppercase() } }
+        val propNames = getAllProperties(clazz, includeDynamic).sortedBy { it.replaceFirstChar { it.uppercase() } }
 
         propNames.forEach { propName ->
             val allInstances = mutableListOf<Any>()
@@ -221,7 +245,7 @@ object UiSerializer {
             val primary = allInstances.first()
 
             if (primary is UiType) {
-                var serialized: Any? = serializeObject(primary, allInstances.drop(1), flattenPatchStyle)
+                var serialized: Any? = serializeObject(primary, allInstances.drop(1), flattenPatchStyle, includeDynamic)
                 if (flattenPatchStyle && primary is UiPatchStyle) {
                     val m = serialized as Map<*, *>
                     if (m.size == 1 && m.containsKey("Color")) {

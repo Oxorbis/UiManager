@@ -18,6 +18,16 @@ class UiGenerator(private val reportFile: File, private val outputDir: File) {
     private var nodeOverrides: Map<String, Map<String, String>> = emptyMap()
     private var typeOverrides: Map<String, Map<String, String>> = emptyMap()
 
+    /**
+     * Properties that should be excluded from .ui file serialization (marked with @DynamicProperty).
+     * These properties are still present on the node and tracked by the diff processor,
+     * but won't be written to the .ui file. They are sent dynamically via update commands on UI show.
+     * Format: "NodeName" to setOf("PropertyName" in PascalCase)
+     */
+    private val dynamicNodeProperties: Map<String, Set<String>> = mapOf(
+        "DropdownBox" to setOf("Entries"),
+    )
+
     private var enumsJson: JsonObject? = null
     private var typesJson: JsonObject? = null
 
@@ -133,6 +143,27 @@ class UiGenerator(private val reportFile: File, private val outputDir: File) {
             .addAnnotation(AnnotationSpec.builder(Retention::class)
                 .addMember("%T.RUNTIME", AnnotationRetention::class)
                 .build())
+            .build()
+
+        val dynamicPropertyType = TypeSpec.annotationBuilder("DynamicProperty")
+            .addModifiers(KModifier.PUBLIC)
+            .addKdoc(
+                "Marks a property that should not be included in the serialized .ui file,\n" +
+                        "but should still be tracked for diff processing and sent dynamically via update commands."
+            )
+            .addAnnotation(
+                AnnotationSpec.builder(Target::class)
+                    .addMember("%T.PROPERTY", AnnotationTarget::class)
+                    .addMember("%T.FIELD", AnnotationTarget::class)
+                    .addMember("%T.FUNCTION", AnnotationTarget::class)
+                    .addMember("%T.PROPERTY_GETTER", AnnotationTarget::class)
+                    .build()
+            )
+            .addAnnotation(
+                AnnotationSpec.builder(Retention::class)
+                    .addMember("%T.RUNTIME", AnnotationRetention::class)
+                    .build()
+            )
             .build()
 
         val uiNodeBuilder = TypeSpec.interfaceBuilder("UiNode")
@@ -301,6 +332,7 @@ class UiGenerator(private val reportFile: File, private val outputDir: File) {
         FileSpec.builder(rootPackage, "Infrastructure")
             .addType(dslMarker)
             .addType(excludePropertyType)
+            .addType(dynamicPropertyType)
             .addType(childNodeBuilder)
             .addType(uiNode)
             .addType(uiNodeWithChildren)
@@ -531,8 +563,15 @@ class UiGenerator(private val reportFile: File, private val outputDir: File) {
                 }
                 val propertyName = propName.replaceFirstChar { it.lowercase() }
 
+                val dynamicProps = dynamicNodeProperties[name] ?: emptySet()
+                val dynamicPropertyAnnotation = ClassName(rootPackage, "DynamicProperty")
                 val propertySpec = PropertySpec.builder(propertyName, kotlinType)
                     .mutable(true)
+                    .apply {
+                        if (propName in dynamicProps) {
+                            addAnnotation(dynamicPropertyAnnotation)
+                        }
+                    }
                     .delegate("%M($propertyName)", rebindableFunc)
                     .build()
 
