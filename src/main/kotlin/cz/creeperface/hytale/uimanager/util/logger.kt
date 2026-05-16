@@ -5,7 +5,7 @@ import com.google.common.flogger.LoggingApi
 import java.util.logging.Level
 
 inline fun <API : LoggingApi<API>> AbstractLogger<API>.debug(message: () -> String) {
-    val at = at(Level.INFO)
+    val at = at(Level.FINE)
 
     if (at is LoggingApi.NoOp<*>) {
         return
@@ -15,7 +15,7 @@ inline fun <API : LoggingApi<API>> AbstractLogger<API>.debug(message: () -> Stri
 }
 
 inline fun <API : LoggingApi<API>> AbstractLogger<API>.inDebug(message: (LoggingApi<API>) -> Unit) {
-    val at = at(Level.INFO)
+    val at = at(Level.FINE)
 
     if (at is LoggingApi.NoOp<*>) {
         return
