@@ -746,6 +746,8 @@ object UiManager {
 
                 playerRef.packetHandler.writeNoCache(
                     CustomHud(
+                        "UiManager",
+                        100,
                         firstRender,
                         commands.toTypedArray()
                     )

@@ -2,6 +2,7 @@ package cz.creeperface.hytale.uimanager
 
 import aster.amo.kytale.dsl.event
 import com.buuz135.mhud.MultipleHUD
+import com.hypixel.hytale.protocol.io.ChannelConnection
 import com.hypixel.hytale.protocol.packets.interface_.CustomHud
 import com.hypixel.hytale.server.core.HytaleServer
 import com.hypixel.hytale.server.core.event.events.player.PlayerConnectEvent
@@ -9,8 +10,7 @@ import com.hypixel.hytale.server.core.event.events.player.PlayerDisconnectEvent
 import com.hypixel.hytale.server.core.io.PacketHandler
 import com.hypixel.hytale.server.core.plugin.JavaPlugin
 import com.hypixel.hytale.server.core.plugin.JavaPluginInit
-import cz.creeperface.hytale.uimanager.util.DelegatedChannel
-import io.netty.channel.Channel
+import cz.creeperface.hytale.uimanager.util.DelegatedChannelConnection
 import java.util.concurrent.TimeUnit
 
 class UiManagerPlugin(init: JavaPluginInit) : JavaPlugin(init) {
@@ -27,7 +27,7 @@ class UiManagerPlugin(init: JavaPluginInit) : JavaPlugin(init) {
 
                 val channelsField = PacketHandler::class.java.getDeclaredField("channels")
                 channelsField.isAccessible = true
-                val channels = channelsField.get(packetHandler) as Array<Channel?>
+                val channels = channelsField.get(packetHandler) as Array<ChannelConnection?>
 
                 var injected = false
 
@@ -39,7 +39,7 @@ class UiManagerPlugin(init: JavaPluginInit) : JavaPlugin(init) {
                         return@forEach
                     }
 
-                    channels[i] = DelegatedChannel(channel) { msg ->
+                    channels[i] = DelegatedChannelConnection(channel) { msg ->
                         if (msg is CustomHud && msg.clear && !UiManager.firstSendPlayers.contains(playerRef)) {
                             throw RuntimeException("Another plugin tried to clear player ${playerRef.username} HUD")
                         }
