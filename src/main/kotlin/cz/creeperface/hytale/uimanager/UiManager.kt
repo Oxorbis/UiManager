@@ -9,7 +9,6 @@ import com.hypixel.hytale.component.Store
 import com.hypixel.hytale.logger.HytaleLogger
 import com.hypixel.hytale.protocol.packets.interface_.*
 import com.hypixel.hytale.server.core.asset.common.CommonAssetModule
-import com.hypixel.hytale.server.core.entity.entities.player.hud.CustomUIHud
 import com.hypixel.hytale.server.core.entity.entities.player.pages.InteractiveCustomUIPage
 import com.hypixel.hytale.server.core.ui.builder.EventData
 import com.hypixel.hytale.server.core.ui.builder.UICommandBuilder
@@ -131,7 +130,6 @@ object UiManager {
     private var closed = false
 
     private val pageIdRegex = "^[a-zA-Z0-9]+$".toRegex()
-    private val identifierRegex = "[^a-zA-Z0-9]".toRegex()
 
     private val pageCounter = AtomicInteger(0)
 
@@ -1103,13 +1101,5 @@ object UiManager {
         pageData.forms.forEachIndexed { formIndex, form ->
             processForm(formIndex, form)
         }
-    }
-
-    @Deprecated("No longer used after hytale update 5")
-    internal fun addCustomUiHud(player: PlayerRef, identifier: String, hud: CustomUIHud) {
-    }
-
-    @Deprecated("No longer used after hytale update 5")
-    internal fun removeCustomUiHud(player: PlayerRef, identifier: String) {
     }
 }

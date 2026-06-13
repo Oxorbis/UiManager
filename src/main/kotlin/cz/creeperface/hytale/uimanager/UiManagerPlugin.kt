@@ -1,7 +1,6 @@
 package cz.creeperface.hytale.uimanager
 
 import aster.amo.kytale.dsl.event
-import com.buuz135.mhud.MultipleHUD
 import com.hypixel.hytale.server.core.HytaleServer
 import com.hypixel.hytale.server.core.event.events.player.PlayerDisconnectEvent
 import com.hypixel.hytale.server.core.plugin.JavaPlugin
@@ -11,8 +10,6 @@ import java.util.concurrent.TimeUnit
 class UiManagerPlugin(init: JavaPluginInit) : JavaPlugin(init) {
 
     override fun setup() {
-        MultipleHUD.getInstance()
-
 //        event<PlayerConnectEvent> { event ->
 //            try {
 //                logger.atInfo().log("Injecting player network channel wrapper...")
