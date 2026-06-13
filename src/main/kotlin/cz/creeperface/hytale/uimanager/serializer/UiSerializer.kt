@@ -4,13 +4,52 @@ import com.hypixel.hytale.server.core.Message
 import cz.creeperface.hytale.uimanager.*
 import cz.creeperface.hytale.uimanager.special.UiListGroup
 import cz.creeperface.hytale.uimanager.type.UiPatchStyle
+import java.util.concurrent.ConcurrentHashMap
 import kotlin.reflect.KClass
+import kotlin.reflect.KProperty1
 import kotlin.reflect.KVisibility
 import kotlin.reflect.full.companionObjectInstance
 import kotlin.reflect.full.memberProperties
 import kotlin.reflect.jvm.isAccessible
 
 object UiSerializer {
+
+    // --- Reflection caches (read-mostly; the diff runs from multiple threads) ---
+    // key: (node/type class, includeDynamic) — the dynamic filter changes the property set
+    private val propertyNamesCache = ConcurrentHashMap<Pair<KClass<*>, Boolean>, List<String>>()
+
+    // per class: property name -> accessible KProperty1 (for value reads by name)
+    private val accessorCache = ConcurrentHashMap<KClass<*>, Map<String, KProperty1<Any, *>>>()
+
+    // per class: resolved, immutable node metadata
+    private val nodeMetaCache = ConcurrentHashMap<KClass<*>, NodeMeta>()
+
+    data class NodeMeta(val nodeName: String)
+
+    @Suppress("UNCHECKED_CAST")
+    private fun accessorsFor(clazz: KClass<*>): Map<String, KProperty1<Any, *>> =
+        accessorCache.computeIfAbsent(clazz) { c ->
+            c.memberProperties.associateBy({ it.name }) { p ->
+                p.isAccessible = true
+                p as KProperty1<Any, *>
+            }
+        }
+
+    private fun nodeMetaFor(clazz: KClass<*>): NodeMeta =
+        nodeMetaCache.computeIfAbsent(clazz) { c ->
+            val companion = c.companionObjectInstance
+            val companionName = companion?.let { comp ->
+                accessorsFor(comp::class)["NODE_NAME"]?.get(comp) as? String
+            }
+            val resolvedName = companionName
+                ?: if (UiNode::class.java.isAssignableFrom(c.java)) "Group"
+                else c.simpleName?.removePrefix("Ui") ?: "Unknown"
+            NodeMeta(resolvedName)
+        }
+
+    /** Read a property value by name using the cached accessor map. */
+    internal fun readProperty(receiver: Any, name: String): Any? =
+        accessorsFor(receiver::class)[name]?.get(receiver)
 
     fun serialize(page: UiPage): String {
         val sb = StringBuilder()
@@ -64,43 +103,44 @@ object UiSerializer {
         return result.distinct()
     }
 
-    private fun getAllProperties(clazz: KClass<*>, includeDynamic: Boolean = false): List<String> {
-        return clazz.memberProperties
-            .filter { it.visibility == KVisibility.PUBLIC }
-            .filter { prop ->
-                val hasExclude = prop.annotations.any { it.annotationClass == ExcludeProperty::class } ||
-                        prop.getter.annotations.any { it.annotationClass == ExcludeProperty::class }
+    private fun getAllProperties(clazz: KClass<*>, includeDynamic: Boolean = false): List<String> =
+        propertyNamesCache.computeIfAbsent(clazz to includeDynamic) {
+            clazz.memberProperties
+                .filter { it.visibility == KVisibility.PUBLIC }
+                .filter { prop ->
+                    val hasExclude = prop.annotations.any { it.annotationClass == ExcludeProperty::class } ||
+                            prop.getter.annotations.any { it.annotationClass == ExcludeProperty::class }
 
-                if (hasExclude) return@filter false
+                    if (hasExclude) return@filter false
 
-                val hasDynamic = prop.annotations.any { it.annotationClass == DynamicProperty::class } ||
-                        prop.getter.annotations.any { it.annotationClass == DynamicProperty::class }
+                    val hasDynamic = prop.annotations.any { it.annotationClass == DynamicProperty::class } ||
+                            prop.getter.annotations.any { it.annotationClass == DynamicProperty::class }
 
-                if (hasDynamic && !includeDynamic) return@filter false
+                    if (hasDynamic && !includeDynamic) return@filter false
 
-                // Check hierarchy for the annotation
-                val name = prop.name
-                val hasAnnotationInHierarchy = clazz.supertypes
-                    .mapNotNull { it.classifier as? KClass<*> }
-                    .any { superClazz ->
-                        superClazz.memberProperties.find { it.name == name }?.let { superProp ->
-                            val superExclude =
-                                superProp.annotations.any { it.annotationClass == ExcludeProperty::class } ||
-                                    superProp.getter.annotations.any { it.annotationClass == ExcludeProperty::class }
-                            if (superExclude) return@let true
+                    // Check hierarchy for the annotation
+                    val name = prop.name
+                    val hasAnnotationInHierarchy = clazz.supertypes
+                        .mapNotNull { it.classifier as? KClass<*> }
+                        .any { superClazz ->
+                            superClazz.memberProperties.find { it.name == name }?.let { superProp ->
+                                val superExclude =
+                                    superProp.annotations.any { it.annotationClass == ExcludeProperty::class } ||
+                                            superProp.getter.annotations.any { it.annotationClass == ExcludeProperty::class }
+                                if (superExclude) return@let true
 
-                            val superDynamic =
-                                superProp.annotations.any { it.annotationClass == DynamicProperty::class } ||
-                                        superProp.getter.annotations.any { it.annotationClass == DynamicProperty::class }
-                            superDynamic && !includeDynamic
-                        } ?: false
-                    }
+                                val superDynamic =
+                                    superProp.annotations.any { it.annotationClass == DynamicProperty::class } ||
+                                            superProp.getter.annotations.any { it.annotationClass == DynamicProperty::class }
+                                superDynamic && !includeDynamic
+                            } ?: false
+                        }
 
-                !hasAnnotationInHierarchy
-            }
-            .map { it.name }
-            .distinct()
-    }
+                    !hasAnnotationInHierarchy
+                }
+                .map { it.name }
+                .distinct()
+        }
 
     fun toGenericNode(
         uiNode: Any,
@@ -109,16 +149,10 @@ object UiSerializer {
         includeDynamic: Boolean = false
     ): GenericNode {
         val clazz = uiNode::class
-        val nodeName = clazz.companionObjectInstance?.let { companion ->
-            val nodeNameProp = companion::class.memberProperties.find { it.name == "NODE_NAME" }
-            nodeNameProp?.apply { isAccessible = true }?.call(companion) as? String
-        } ?: (uiNode as? UiNode)?.let { "Group" } ?: clazz.simpleName?.removePrefix("Ui") ?: "Unknown"
-
-        val idProp = clazz.memberProperties.find { it.name == "id" }
-        val id = idProp?.apply { isAccessible = true }?.call(uiNode) as? String
-
-        val omitNameProp = clazz.memberProperties.find { it.name == "omitName" }
-        val omitName = omitNameProp?.apply { isAccessible = true }?.call(uiNode) as? Boolean ?: false
+        val accessors = accessorsFor(clazz)
+        val nodeName = nodeMetaFor(clazz).nodeName
+        val id = accessors["id"]?.get(uiNode) as? String
+        val omitName = accessors["omitName"]?.get(uiNode) as? Boolean ?: false
 
         val genericNode = GenericNode(
             if (omitName) "" else nodeName,
@@ -234,8 +268,7 @@ object UiSerializer {
         propNames.forEach { propName ->
             val allInstances = mutableListOf<Any>()
             hierarchy.forEach { h ->
-                val prop = h::class.memberProperties.find { it.name == propName }
-                val v = prop?.apply { isAccessible = true }?.call(h)
+                val v = accessorsFor(h::class)[propName]?.get(h)
                 if (v != null) allInstances.add(v)
             }
 

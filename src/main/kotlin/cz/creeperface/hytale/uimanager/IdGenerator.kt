@@ -1,19 +1,17 @@
 package cz.creeperface.hytale.uimanager
 
-import kotlin.Int
-import kotlin.String
-import kotlin.collections.MutableMap
-
 public object IdGenerator {
-  private val counters: MutableMap<String, Int> = mutableMapOf()
+  private val counters: ThreadLocal<MutableMap<String, Int>> =
+    ThreadLocal.withInitial { mutableMapOf() }
 
   public fun getNext(prefix: String): String {
-    val count = counters.getOrDefault(prefix, 0) + 1
-    counters[prefix] = count
+    val map = counters.get()
+    val count = map.getOrDefault(prefix, 0) + 1
+    map[prefix] = count
     return "$prefix$count"
   }
 
   public fun reset() {
-    counters.clear()
+    counters.get().clear()
   }
 }

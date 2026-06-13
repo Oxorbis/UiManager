@@ -97,6 +97,11 @@ java {
 tasks.test {
     useJUnitPlatform()
     systemProperty("java.util.logging.manager", "com.hypixel.hytale.logger.backend.HytaleLogManager")
+    // The Hytale Server JAR is compiled for Java 25 (class file v69), so the test runtime
+    // must be JDK 25 even though we compile bytecode at 24 (Kotlin 2.2 can't target 25 yet).
+    javaLauncher.set(javaToolchains.launcherFor {
+        languageVersion.set(JavaLanguageVersion.of(25))
+    })
 }
 
 val compileKotlin: KotlinCompile by tasks

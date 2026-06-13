@@ -10,6 +10,8 @@ A Kotlin server-side plugin for Hytale that provides a type-safe DSL for buildin
 - [**HUDs**](#huds) - Persistent overlay elements with static, auto-updating, and manually updated modes
 - [**Automatic Dirty Tracking & Diff Updates**](#diff-based-updates) - Only changed properties are sent to the client,
   minimizing network traffic
+- [**Async & Thread-Safe Updates**](#async-updates--threading) - Move the build + diff off the world thread with
+  `updateAsync` / `updatePageAsync`; registries are safe to use concurrently across worlds
 - [**Data Binding**](#data-binding--dynamic-updates) - Bind UI properties to observable data for automatic UI refresh on
   change
 - [**Events**](#events) - Type-safe event handlers with the ability to capture values from other nodes
@@ -211,6 +213,15 @@ UiManager.updatePage(
 )
 ```
 
+For frequently-updated pages, prefer `updatePageAsync`, which moves the build + diff off the calling thread and returns
+a `CompletableFuture<Void>`. It takes the same arguments as `updatePage` plus an optional `executor`:
+
+```kotlin
+UiManager.updatePageAsync(playerRef, "shop", ShopData(updatedItems))
+```
+
+See [Async Updates & Threading](#async-updates--threading) for the contract and best practices.
+
 ## HUDs
 
 HUDs are persistent overlay elements that remain on screen. Three registration modes are available:
@@ -264,6 +275,15 @@ UiManager.showDynamicHud("stats", playerRef, playerStats)
 UiManager.update(playerRef, "stats", updatedStats)
 ```
 
+For HUDs refreshed every tick, prefer the async variant — it builds + diffs off the world thread and returns a
+`CompletableFuture<Void>`:
+
+```kotlin
+UiManager.updateAsync(playerRef, "stats", updatedStats)
+```
+
+See [Async Updates & Threading](#async-updates--threading).
+
 ## Data Binding & Dynamic Updates
 
 ### Observable Data
@@ -303,6 +323,62 @@ data.score = 42
 ### Dirty Tracking
 
 All node properties use `rebindable()` delegates that track changes automatically. When any property changes, the node is marked dirty, and the auto-update system detects it and sends only the changed values to the client using diff-based updates.
+
+## Async Updates & Threading
+
+Building and diffing a UI tree is pure CPU work — rebuild the tree, clone it, diff against the last-sent state. For a
+frequently-refreshed UI (a game HUD updated every tick, say) doing that on the world thread can blow the server's
+per-tick budget. The async variants move that work onto a background executor; only the packet send stays on the
+engine's schedule.
+
+### `updateAsync` (HUD) and `updatePageAsync` (page)
+
+```kotlin
+// HUD hot path — build + diff off the world thread
+UiManager.updateAsync(playerRef, "gameHud", hudData)
+
+// Page equivalent (same arguments as updatePage)
+UiManager.updatePageAsync(playerRef, "shop", ShopData(updatedItems))
+```
+
+Both return a `CompletableFuture<Void>` that completes once the result is published (HUD) / the packet is sent (page),
+or exceptionally if the build fails — on failure no UI state is mutated, so the next diff is unaffected. Both accept an
+optional `executor` to override the pool per call. The default is a small bounded daemon pool, replaceable globally:
+
+```kotlin
+UiManager.updateAsync(playerRef, "gameHud", hudData, executor = myExecutor)
+
+UiManager.uiBuildExecutor = myExecutor   // global override
+```
+
+### Coalescing (latest-wins)
+
+If you call `updateAsync` for the same instance faster than builds complete, builds are serialized per instance and only
+the **newest** pending one runs next — intermediate frames are dropped. This is the correct behaviour for a per-tick
+HUD: you always converge on the latest state without queueing stale work.
+
+### Best practices
+
+- **Build your data snapshot first, then pass it in.** The page factory runs on a background thread, so it must read
+  only the `context` / `userData` snapshot you pass plus immutable/registered data — **never** live ECS / world / entity
+  state. Gather what you need on your own thread, wrap it in a data class, and hand that to `updateAsync`.
+- **Pick sync or async per instance — don't mix them.** Async builds are serialized against each other but not against
+  the synchronous `update` / `updatePage`. Driving the same HUD/page through both concurrently races on internal state.
+  Choose one path per instance.
+- **Async for the hot path, sync for one-offs.** A per-tick HUD benefits from `updateAsync`; a one-time update in
+  response to a click is fine synchronously.
+
+### Calling from multiple worlds
+
+Different Hytale worlds tick on different threads. UiManager's registries are thread-safe, so `show*` / `update*` /
+`hideHud` may be used concurrently for players in different worlds. The contract:
+
+- **Drive a given player's UI from that player's own world thread.** Per-player state stays consistent because a player
+  lives in one world (one thread); concurrency is only *between* different players in different worlds.
+- **`showPage` is safe to call from any thread.** It schedules the actual open onto the player's world thread, so it
+  **returns before the page is open** (end of the current tick if you are already on that world thread, otherwise the
+  next tick).
+- The factory contract above (no live world state) applies to `showPage` / `showDynamicHud` initial builds too.
 
 ## Events
 
@@ -675,4 +751,5 @@ MultipleHUD continue to work without changes. Install the adapter instead of Mul
 ./gradlew generateUi     # Regenerate node/type/enum classes from ui_structure_report.json
 ```
 
-**Requirements**: Kotlin JVM targeting Java 24, Hytale Server JAR (local dependency)
+**Requirements**: JDK 25 to build & run (the Hytale Server JAR is compiled for Java 25; Kotlin emits Java 24 bytecode,
+which runs on 25), Hytale Server JAR (local dependency)

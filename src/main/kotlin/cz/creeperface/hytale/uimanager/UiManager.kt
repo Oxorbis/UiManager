@@ -15,7 +15,12 @@ import com.hypixel.hytale.server.core.ui.builder.EventData
 import com.hypixel.hytale.server.core.ui.builder.UICommandBuilder
 import com.hypixel.hytale.server.core.ui.builder.UIEventBuilder
 import com.hypixel.hytale.server.core.universe.PlayerRef
+import com.hypixel.hytale.server.core.universe.Universe
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore
+import cz.creeperface.hytale.uimanager.UiManager.update
+import cz.creeperface.hytale.uimanager.UiManager.updateAsync
+import cz.creeperface.hytale.uimanager.UiManager.updatePage
+import cz.creeperface.hytale.uimanager.UiManager.updatePageAsync
 import cz.creeperface.hytale.uimanager.asset.DynamicAsset
 import cz.creeperface.hytale.uimanager.builder.customUi
 import cz.creeperface.hytale.uimanager.builder.group
@@ -28,8 +33,11 @@ import cz.creeperface.hytale.uimanager.serializer.UiDiffProcessor
 import cz.creeperface.hytale.uimanager.serializer.UiSerializer
 import cz.creeperface.hytale.uimanager.special.FormResponse
 import cz.creeperface.hytale.uimanager.special.UiForm
-import cz.creeperface.hytale.uimanager.util.*
-import java.util.concurrent.ConcurrentHashMap
+import cz.creeperface.hytale.uimanager.util.debug
+import cz.creeperface.hytale.uimanager.util.getComponent
+import cz.creeperface.hytale.uimanager.util.inDebug
+import cz.creeperface.hytale.uimanager.util.player
+import java.util.concurrent.*
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.locks.ReentrantReadWriteLock
 import kotlin.concurrent.atomics.ExperimentalAtomicApi
@@ -68,13 +76,6 @@ class DynamicPageData(
     val minUpdateFrequency: Duration
 )
 
-class CustomHudInstance(
-    val identifier: String,
-    val hud: CustomUIHud,
-    var firstRender: Boolean = true,
-    var commands: List<CustomUICommand>? = null
-)
-
 class HudPageInstance(
     val pageId: String,
     var page: UiPage,
@@ -84,7 +85,17 @@ class HudPageInstance(
     var firstRender: Boolean = true,
     val scheduledCommands: MutableList<CustomUICommand>,
     var lastUpdate: Instant,
-)
+) {
+    /** Set true once the instance is hidden/disconnected; an in-flight async build drops its result. */
+    @Volatile
+    var removed: Boolean = false
+
+    /** Serializes async builds for this instance (latest-wins). */
+    val asyncRunner = CoalescingBuildRunner()
+
+    /** Guards [scheduledCommands] / [lastSentPage] / [page] hand-off between build threads and the tick drainer. */
+    val publishLock = Any()
+}
 
 class PageInstance(
     val pageId: String,
@@ -92,9 +103,20 @@ class PageInstance(
     var lifeTime: CustomPageLifetime,
     var lastSentPage: UiPage,
     val pageData: PageData,
-    var eventBindings: MutableMap<Int, EventBinding>,
+    eventBindings: MutableMap<Int, EventBinding>,
     val userData: Any
-)
+) {
+    /** Reassigned on each update (build thread); read by client-event handling on another thread. */
+    @Volatile
+    var eventBindings: MutableMap<Int, EventBinding> = eventBindings
+
+    /** Set true once the page is dismissed/disconnected; an in-flight async build drops its result. */
+    @Volatile
+    var removed: Boolean = false
+
+    /** Serializes async page builds for this instance (latest-wins). */
+    val asyncRunner = CoalescingBuildRunner()
+}
 
 data class UpdateOptions(
     val resendInputs: Boolean = true,
@@ -116,17 +138,28 @@ object UiManager {
     private val pages = mutableMapOf<String, PageData>()
     private val dynamicPages = mutableMapOf<String, DynamicPageData>()
 
-    private val openPages = mutableMapOf<PlayerRef, PageInstance>()
-    private val openHuds = mutableMapOf<PlayerRef, MutableMap<String, HudPageInstance>>()
-
-    private val customHudInitializedPlayers = mutableSetOf<PlayerRef>()
-    private val customHuds = mutableMapOf<PlayerRef, MutableMap<String, CustomHudInstance>>()
+    // Concurrent so show*/update*/hide/disconnect can run from different world threads.
+    // Callers must still invoke a given player's UI from that player's own world thread.
+    private val openPages = ConcurrentHashMap<PlayerRef, PageInstance>()
+    private val openHuds = ConcurrentHashMap<PlayerRef, MutableMap<String, HudPageInstance>>()
 
     private val updateLock = ReentrantReadWriteLock()
     private val scheduledUpdates = ConcurrentHashMap<PlayerRef, MutableSet<HudPageInstance>>()
     private val pendingHudRemovals = ConcurrentHashMap<PlayerRef, MutableSet<String>>()
 
-    internal val firstSendPlayers = ConcurrentHashMap.newKeySet<PlayerRef>()
+    // CPU-bound build/diff work — small fixed daemon pool, not commonPool().
+    private val defaultBuildExecutor: ExecutorService =
+        Executors.newFixedThreadPool(
+            (Runtime.getRuntime().availableProcessors() - 2).coerceIn(1, 4),
+        ) { r -> Thread(r, "UiManager-build").apply { isDaemon = true } }
+
+    /** Executor used by [updateAsync] when no per-call executor is supplied. Overridable. */
+    @Volatile
+    var uiBuildExecutor: Executor = defaultBuildExecutor
+
+    internal fun shutdown() {
+        defaultBuildExecutor.shutdown()
+    }
 
     fun registerStaticHud(pageId: String, pageFactory: ChildNodeBuilder.() -> Unit) {
         require(pageIdRegex.matches(pageId)) {
@@ -291,11 +324,7 @@ object UiManager {
             "Page ID '$pageId' does not exist."
         }
 
-        val openHuds = openHuds.computeIfAbsent(playerRef) { mutableMapOf() }
-
-        require(!openHuds.containsKey(pageId)) {
-            "Page ID '$pageId' is already shown to player ${playerRef.username}"
-        }
+        val playerHuds = openHuds.computeIfAbsent(playerRef) { ConcurrentHashMap<String, HudPageInstance>() }
 
         val pageInstance = HudPageInstance(
             pageId,
@@ -307,7 +336,9 @@ object UiManager {
             mutableListOf(),
             Clock.System.now()
         )
-        openHuds[pageId] = pageInstance
+        require(playerHuds.putIfAbsent(pageId, pageInstance) == null) {
+            "Page ID '$pageId' is already shown to player ${playerRef.username}"
+        }
 
         logger.debug {
             "Showing dynamic HUD with ID '$pageId' to player ${playerRef.username}"
@@ -339,11 +370,7 @@ object UiManager {
             initialShow = true
         )
 
-        val openHuds = openHuds.computeIfAbsent(playerRef) { mutableMapOf() }
-
-        require(!openHuds.containsKey(pageId)) {
-            "Page ID '$pageId' is already shown to player ${playerRef.username}"
-        }
+        val playerHuds = openHuds.computeIfAbsent(playerRef) { ConcurrentHashMap<String, HudPageInstance>() }
 
         logger.inDebug {
             commandBuilder.commands.forEach { command ->
@@ -361,13 +388,16 @@ object UiManager {
             commandBuilder.commands.toMutableList(),
             Clock.System.now()
         )
-        openHuds[pageId] = pageInstance
+        require(playerHuds.putIfAbsent(pageId, pageInstance) == null) {
+            "Page ID '$pageId' is already shown to player ${playerRef.username}"
+        }
 
         scheduleHudUpdate(playerRef, pageInstance)
     }
 
     fun hideHud(pageId: String, playerRef: PlayerRef) {
-        val removed = openHuds[playerRef]?.remove(pageId) ?: return
+        val instance = openHuds[playerRef]?.remove(pageId) ?: return
+        instance.removed = true
 
         updateLock.read {
             pendingHudRemovals.computeIfAbsent(playerRef) { mutableSetOf() }.add(pageId)
@@ -375,6 +405,23 @@ object UiManager {
         }
     }
 
+    /**
+     * Runs [action] on the owning player's world thread: at the end of the current tick if the
+     * caller is already on that world thread, otherwise on the next tick. Drops silently if the
+     * world is no longer loaded. Lets thread-affine engine calls be invoked from any thread.
+     */
+    private fun executeOnPlayerWorld(playerRef: PlayerRef, action: () -> Unit) {
+        val worldUuid = playerRef.worldUuid ?: return
+        val world = Universe.get().getWorld(worldUuid) ?: return
+        world.execute { action() }
+    }
+
+    /**
+     * Opens an interactive page for the player. Safe to call from any thread: the actual open is
+     * scheduled on the player's world thread, so this **returns before the page is opened** (end of
+     * the current tick if already on that world thread, otherwise next tick). Argument validation
+     * still happens synchronously on the caller.
+     */
     fun showPage(
         playerRef: PlayerRef,
         pageId: String,
@@ -382,14 +429,30 @@ object UiManager {
         lifetime: CustomPageLifetime = CustomPageLifetime.CanDismissOrCloseThroughInteraction,
         formData: List<Any?> = emptyList()
     ) {
-        val pageManager = playerRef.player.pageManager
-        val ref = playerRef.reference ?: return
-
         val pageData = pages[pageId]!!
 
         require(pageData.initialDataClass.isInstance(userData)) {
             "Context type ${userData::class} is not compatible with expected type ${pageData.initialDataClass}"
         }
+
+        // openCustomPage touches the page manager + entity store, so run it on the owning player's
+        // world thread. This makes showPage safe to call from any thread (end of the current tick
+        // if already on that world thread, otherwise next tick).
+        executeOnPlayerWorld(playerRef) {
+            openInteractivePage(playerRef, pageId, pageData, userData, lifetime, formData)
+        }
+    }
+
+    private fun openInteractivePage(
+        playerRef: PlayerRef,
+        pageId: String,
+        pageData: PageData,
+        userData: Any,
+        lifetime: CustomPageLifetime,
+        formData: List<Any?>,
+    ) {
+        val pageManager = playerRef.player.pageManager
+        val ref = playerRef.reference ?: return
 
         val interactivePage = object : InteractiveCustomUIPage<Any>(playerRef, lifetime, CustomPageBuilderCodec()) {
             override fun build(
@@ -479,7 +542,7 @@ object UiManager {
             override fun onDismiss(ref: Ref<EntityStore>, store: Store<EntityStore>) {
                 val playerRef = ref.getComponent(PlayerRef.getComponentType()) ?: return
 
-                openPages.remove(playerRef)
+                openPages.remove(playerRef)?.let { it.removed = true }
             }
         }
 
@@ -590,6 +653,81 @@ object UiManager {
         openPage.lastSentPage = newPage
     }
 
+    /**
+     * Off-thread sibling of [updatePage]: builds + diffs the open interactive page on [executor]
+     * and sends the resulting `CustomPage` packet, instead of doing it on the caller (world) thread.
+     * Builds for the same page instance are serialized and coalesced latest-wins. The returned
+     * future completes after the packet is sent, or exceptionally if the build fails (page state is
+     * left untouched on failure).
+     *
+     * The page factory MUST be safe to run off the world thread: it may read only the supplied
+     * [userData] snapshot and immutable/registered data — never live ECS/world/entity state.
+     *
+     * A given open page must be updated through either [updatePage] or [updatePageAsync], not both
+     * concurrently: async builds are serialized against each other, but not against the synchronous
+     * path, which would race on [PageInstance.lastSentPage] / [PageInstance.eventBindings].
+     */
+    fun updatePageAsync(
+        playerRef: PlayerRef,
+        pageId: String,
+        userData: Any = Unit,
+        clear: Boolean = false,
+        formData: List<Any?> = emptyList(),
+        options: UpdateOptions = UpdateOptions(),
+        executor: Executor = uiBuildExecutor,
+    ): CompletableFuture<Void> {
+        // Resolve the instance on the caller thread (openPages is not thread-safe).
+        val openPage = openPages[playerRef] ?: return CompletableFuture.completedFuture<Void>(null)
+        if (openPage.pageId != pageId) return CompletableFuture.completedFuture<Void>(null)
+
+        return openPage.asyncRunner.submit(executor) {
+            buildAndSendPageAsync(playerRef, openPage, pageId, userData, clear, formData, options)
+        }
+    }
+
+    private fun buildAndSendPageAsync(
+        playerRef: PlayerRef,
+        openPage: PageInstance,
+        pageId: String,
+        userData: Any,
+        clear: Boolean,
+        formData: List<Any?>,
+        options: UpdateOptions,
+    ) {
+        try {
+            val newPage = openPage.pageData.factory(playerRef, userData)
+            extractPageForms(newPage)
+
+            val commandBuilder = UICommandBuilder()
+            val eventBuilder = UIEventBuilder()
+
+            UiDiffProcessor.generateUpdateCommands(openPage.lastSentPage, newPage, commandBuilder, options.resendInputs)
+            val eventBindings = addEventBindings(newPage, eventBuilder)
+
+            processPageForms(openPage.pageData, commandBuilder, eventBuilder, formData)
+
+            // Skip if the page was dismissed/disconnected mid-build.
+            if (openPage.removed) return
+
+            playerRef.packetHandler.writeNoCache(
+                CustomPage(
+                    pageId,
+                    false,
+                    clear,
+                    openPage.lifeTime,
+                    commandBuilder.commands,
+                    eventBuilder.events
+                )
+            )
+
+            openPage.eventBindings = eventBindings.toMutableMap()
+            openPage.lastSentPage = newPage
+        } catch (e: Throwable) {
+            logger.atWarning().withCause(e).log("Async page build failed for page '$pageId'")
+            throw e
+        }
+    }
+
     private fun scheduleHudUpdate(playerRef: PlayerRef, pageInstance: HudPageInstance) {
         updateLock.read {
             val playerUpdates = scheduledUpdates.computeIfAbsent(playerRef) { mutableSetOf() }
@@ -615,10 +753,11 @@ object UiManager {
             }
         }
 
-        pageInstance.lastSentPage = sendPage
-
-        pageInstance.scheduledCommands.clear()
-        pageInstance.scheduledCommands.addAll(commandBuilder.commands)
+        synchronized(pageInstance.publishLock) {
+            pageInstance.lastSentPage = sendPage
+            pageInstance.scheduledCommands.clear()
+            pageInstance.scheduledCommands.addAll(commandBuilder.commands)
+        }
 
         scheduleHudUpdate(playerRef, pageInstance)
     }
@@ -668,25 +807,11 @@ object UiManager {
             val eventBuilder = UIEventBuilder()
 
             val pagesWithUpdate = instances.associate { instance ->
-                val entry = instance.pageId to instance.scheduledCommands.toList()
-                instance.scheduledCommands.clear()
-
-                entry
-            }
-
-            val firstRender = !customHudInitializedPlayers.contains(playerRef)
-
-            if (firstRender) {
-                customHudInitializedPlayers.add(playerRef)
-
-                commands.add(
-                    CustomUICommand(
-                        CustomUICommandType.AppendInline,
-                        null,
-                        null,
-                        "Group #MultipleHUD {}",
-                    )
-                )
+                synchronized(instance.publishLock) {
+                    val entry = instance.pageId to instance.scheduledCommands.toList()
+                    instance.scheduledCommands.clear()
+                    entry
+                }
             }
 
             openHuds[playerRef]?.forEach { (pageId, instance) ->
@@ -711,51 +836,15 @@ object UiManager {
                 commands.add(CustomUICommand(CustomUICommandType.Clear, "#$pageId", null, null))
             }
 
-            val customHuds = synchronized(customHuds) {
-                val playerHuds = customHuds[playerRef]
-                val customHuds = playerHuds?.toMap()
-                playerHuds?.clear()
-
-                customHuds
-            }
-
-            customHuds?.forEach { (_, hudInstance) ->
-                val customHudGroupId = "#${hudInstance.identifier}"
-
-                val customHudCommands = hudInstance.commands ?: run {
-                    val commands = CustomHudHelper.build(hudInstance.hud, "#MultipleHUD $customHudGroupId")
-                    hudInstance.commands = commands
-
-                    commands
-                }
-
-                if (hudInstance.firstRender) {
-                    hudInstance.firstRender = false
-                    commands.add(CustomUICommand(CustomUICommandType.AppendInline, "#MultipleHUD", null, "Group $customHudGroupId {}"))
-                } else {
-                    commands.add(CustomUICommand(CustomUICommandType.Clear, "#MultipleHUD $customHudGroupId", null, null))
-                }
-
-                commands.addAll(customHudCommands)
-            }
-
             if (commands.isNotEmpty()) {
-                if (firstRender) {
-                    firstSendPlayers.add(playerRef)
-                }
-
                 playerRef.packetHandler.writeNoCache(
                     CustomHud(
                         "UiManager",
                         100,
-                        firstRender,
+                        false,
                         commands.toTypedArray()
                     )
                 )
-
-                if (firstRender) {
-                    firstSendPlayers.remove(playerRef)
-                }
             }
         }
     }
@@ -776,9 +865,65 @@ object UiManager {
         updateHudPageInstance(playerRef, pageInstance)
     }
 
+    /**
+     * Build + diff a dynamic HUD off the caller (world) thread and enqueue the resulting
+     * commands for the next tick. Builds for the same instance are serialized and coalesced
+     * latest-wins. The returned future completes after the result is published (not after the
+     * packet is sent), or exceptionally if the build fails (state is left untouched on failure).
+     *
+     * The page factory MUST be safe to run off the world thread: it may read only the supplied
+     * [context] snapshot and immutable/registered data — never live ECS/world/entity state.
+     *
+     * A given HUD instance must be updated through either [update] or [updateAsync], not both
+     * concurrently: async builds are serialized against each other, but not against the
+     * synchronous path, which would race on [HudPageInstance.lastSentPage].
+     */
+    fun updateAsync(
+        playerRef: PlayerRef,
+        pageId: String,
+        context: Any,
+        executor: Executor = uiBuildExecutor,
+    ): CompletableFuture<Void> {
+        // Resolve the instance on the caller thread (openHuds is not thread-safe).
+        val instance = openHuds[playerRef]?.get(pageId)
+            ?: return CompletableFuture.completedFuture<Void>(null)
+        requireNotNull(instance.dynamicPageData) {
+            "Trying to update page ID '$pageId' which is not dynamic"
+        }
+
+        return instance.asyncRunner.submit(executor) {
+            buildAndPublishAsync(playerRef, instance, context)
+        }
+    }
+
+    private fun buildAndPublishAsync(playerRef: PlayerRef, instance: HudPageInstance, context: Any) {
+        val dynamicPageData = instance.dynamicPageData!!
+        try {
+            val page = dynamicPageData.factory(playerRef, context)
+            page.resetDirty()
+            val sendPage = page.clone()
+
+            val commandBuilder = UICommandBuilder()
+            UiDiffProcessor.generateUpdateCommands(instance.lastSentPage, sendPage, commandBuilder)
+
+            // Publish only on success; skip if the instance was hidden/disconnected mid-build.
+            if (instance.removed) return
+            synchronized(instance.publishLock) {
+                instance.page = page
+                instance.lastSentPage = sendPage
+                instance.scheduledCommands.clear()
+                instance.scheduledCommands.addAll(commandBuilder.commands)
+            }
+            scheduleHudUpdate(playerRef, instance)
+        } catch (e: Throwable) {
+            logger.atWarning().withCause(e).log("Async UI build failed for page '${instance.pageId}'")
+            throw e
+        }
+    }
+
     internal fun onPlayerDisconnect(playerRef: PlayerRef) {
-        openHuds.remove(playerRef)
-        openPages.remove(playerRef)
+        openHuds.remove(playerRef)?.values?.forEach { it.removed = true }
+        openPages.remove(playerRef)?.let { it.removed = true }
         pendingHudRemovals.remove(playerRef)
     }
 
@@ -960,41 +1105,11 @@ object UiManager {
         }
     }
 
+    @Deprecated("No longer used after hytale update 5")
     internal fun addCustomUiHud(player: PlayerRef, identifier: String, hud: CustomUIHud) {
-        val identifier = normalizeIdentifier(identifier)
-
-        logger.atInfo().log("Adding custom hud $identifier for player ${player.username}")
-
-        val playerHuds = synchronized(customHuds) {
-            customHuds
-                .getOrPut(player) { mutableMapOf() }
-        }
-
-        val update = playerHuds.containsKey(identifier)
-        playerHuds[identifier] = CustomHudInstance(identifier, hud, !update)
-
-        updateLock.read {
-            scheduledUpdates.getOrPut(player) { mutableSetOf() }
-        }
-
-        if (!update) {
-            processPlayerUpdates()
-        }
     }
 
+    @Deprecated("No longer used after hytale update 5")
     internal fun removeCustomUiHud(player: PlayerRef, identifier: String) {
-        val identifier = normalizeIdentifier(identifier)
-
-        logger.atInfo().log("Removing custom hud $identifier from player ${player.username}")
-
-        synchronized(customHuds) {
-            customHuds[player]?.remove(identifier)
-        }
-
-        updateLock.read {
-            scheduledUpdates.getOrPut(player) { mutableSetOf() }
-        }
     }
-
-    private fun normalizeIdentifier(identifier: String) = identifier.replace(identifierRegex, "")
 }

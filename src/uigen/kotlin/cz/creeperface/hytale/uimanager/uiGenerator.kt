@@ -349,20 +349,24 @@ class UiGenerator(private val reportFile: File, private val outputDir: File) {
     }
 
     private fun generateIdGenerator() {
+        val threadLocal = ClassName("java.lang", "ThreadLocal")
+            .parameterizedBy(MUTABLE_MAP.parameterizedBy(STRING, INT))
         val typeSpec = TypeSpec.objectBuilder("IdGenerator")
-            .addProperty(PropertySpec.builder("counters", MUTABLE_MAP.parameterizedBy(STRING, INT))
-                .initializer("mutableMapOf()")
+            .addProperty(
+                PropertySpec.builder("counters", threadLocal)
+                    .initializer("ThreadLocal.withInitial { mutableMapOf() }")
                 .addModifiers(KModifier.PRIVATE)
                 .build())
             .addFunction(FunSpec.builder("getNext")
                 .addParameter("prefix", STRING)
                 .returns(STRING)
-                .addStatement("val count = counters.getOrDefault(prefix, 0) + 1")
-                .addStatement("counters[prefix] = count")
+                .addStatement("val map = counters.get()")
+                .addStatement("val count = map.getOrDefault(prefix, 0) + 1")
+                .addStatement("map[prefix] = count")
                 .addStatement("return \"${'$'}prefix${'$'}count\"")
                 .build())
             .addFunction(FunSpec.builder("reset")
-                .addStatement("counters.clear()")
+                .addStatement("counters.get().clear()")
                 .build())
             .build()
 

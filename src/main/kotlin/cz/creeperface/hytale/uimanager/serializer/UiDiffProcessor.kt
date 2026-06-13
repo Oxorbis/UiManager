@@ -18,14 +18,23 @@ import cz.creeperface.hytale.uimanager.UiManager.PAGE_PATH
 import cz.creeperface.hytale.uimanager.UiPage
 import cz.creeperface.hytale.uimanager.asset.DynamicAsset
 import cz.creeperface.hytale.uimanager.util.debug
+import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.atomic.AtomicInteger
+import kotlin.reflect.KProperty1
 import kotlin.reflect.full.declaredMemberProperties
-import kotlin.reflect.full.memberProperties
 import kotlin.reflect.jvm.isAccessible
 
 object UiDiffProcessor {
 
     private val logger = HytaleLogger.forEnclosingClass()
     private val gson = Gson()
+
+    // UICommandBuilder.commands is a private backing List; its public getter returns an array
+    // copy, so setRaw must reach the field to append. Resolve the reflective handle once.
+    private val uiCommandBuilderCommandsField: KProperty1<UICommandBuilder, *> by lazy {
+        UICommandBuilder::class.declaredMemberProperties.first { it.name == "commands" }
+            .also { it.isAccessible = true }
+    }
 
     /**
      * Node types with editable values that must always be sent to the client,
@@ -49,8 +58,9 @@ object UiDiffProcessor {
         "FloatSliderNumberField" to "Value",
     )
 
-    private var dynamicPageAssetCounter = 0
-    private val dynamicPageAssets = mutableMapOf<String, String>()
+    private val dynamicPageAssetCounter = AtomicInteger(0)
+    private val dynamicPageAssets = ConcurrentHashMap<String, String>()
+    private val dynamicAssetLock = Any()
 
     interface CommandBuilder {
         fun set(path: String, value: Boolean)
@@ -106,11 +116,8 @@ object UiDiffProcessor {
                 commandBuilder.append(path, documentPath)
             }
             override fun setRaw(path: String, value: Any) {
-                val commandsProperty = UICommandBuilder::class.declaredMemberProperties.first {
-                    it.name == "commands"
-                }
-                commandsProperty.isAccessible = true
-                val commandsMap = commandsProperty.get(commandBuilder) as MutableList<CustomUICommand>
+                @Suppress("UNCHECKED_CAST")
+                val commandsMap = uiCommandBuilderCommandsField.get(commandBuilder) as MutableList<CustomUICommand>
 
                 val jsonWrapper = mapOf("0" to value)
 
@@ -504,9 +511,7 @@ object UiDiffProcessor {
     private fun getSourcePropertyValue(source: Any?, pascalName: String): Any? {
         if (source == null) return null
         val camelName = pascalName.replaceFirstChar { it.lowercase() }
-        val prop = source::class.memberProperties.find { it.name == camelName }
-        prop?.isAccessible = true
-        return prop?.call(source)
+        return UiSerializer.readProperty(source, camelName)
     }
 
     private fun nodesMatchIdentity(a: GenericNode, b: GenericNode): Boolean {
@@ -620,41 +625,51 @@ object UiDiffProcessor {
     private fun getDynamicAssetForNode(node: GenericNode, listParent: Boolean): String {
         val serialized = UiSerializer.serialize(node, listParent = listParent).trim()
 
+        // Fast path: asset already created (lock-free read of the concurrent map).
         dynamicPageAssets[serialized]?.let { return it }
 
-        val fileName = "CustomPartialNode" + dynamicPageAssetCounter++ + ".ui"
+        // Slow path: create + broadcast exactly once even under concurrent callers
+        // (e.g. parallel async updates that both add an identical node).
+        synchronized(dynamicAssetLock) {
+            dynamicPageAssets[serialized]?.let { return it }
 
-        val assetName = ASSET_PATH + fileName
+            val fileName = "CustomPartialNode" + dynamicPageAssetCounter.getAndIncrement() + ".ui"
 
-        logger.debug {
-            "Adding partial node $assetName - file name: $fileName"
-        }
-        logger.debug {
-            "Content: $serialized"
-        }
-        val asset = DynamicAsset(assetName, serialized.toByteArray(Charsets.UTF_8))
+            val assetName = ASSET_PATH + fileName
 
-        val allBytes = asset.blob.get()
-
-        val parts = ArrayUtil.split(allBytes, 2621440)
-        val packets = arrayOfNulls<ToClientPacket>(2 + parts.size)
-
-        packets[0] = AssetInitialize(asset.toPacket(), allBytes.size)
-
-        for (i in parts.indices) {
-            packets[1 + i] = AssetPart(parts[i])
-        }
-
-        packets[1 + parts.size] = AssetFinalize()
-
-        packets.forEach { packet ->
-            packet?.let {
-                Universe.get().broadcastPacketNoCache(packet)
+            logger.debug {
+                "Adding partial node $assetName - file name: $fileName"
             }
-        }
+            logger.debug {
+                "Content: $serialized"
+            }
+            val asset = DynamicAsset(assetName, serialized.toByteArray(Charsets.UTF_8))
 
-        dynamicPageAssets[serialized] = assetName
-        return PAGE_PATH + fileName
+            val allBytes = asset.blob.get()
+
+            val parts = ArrayUtil.split(allBytes, 2621440)
+            val packets = arrayOfNulls<ToClientPacket>(2 + parts.size)
+
+            packets[0] = AssetInitialize(asset.toPacket(), allBytes.size)
+
+            for (i in parts.indices) {
+                packets[1 + i] = AssetPart(parts[i])
+            }
+
+            packets[1 + parts.size] = AssetFinalize()
+
+            packets.forEach { packet ->
+                packet?.let {
+                    Universe.get().broadcastPacketNoCache(packet)
+                }
+            }
+
+            // Store and return the document path consistently (the cache previously returned the
+            // asset path on a hit but the document path on a miss — fixed here).
+            val documentPath = PAGE_PATH + fileName
+            dynamicPageAssets[serialized] = documentPath
+            return documentPath
+        }
     }
 
 }
